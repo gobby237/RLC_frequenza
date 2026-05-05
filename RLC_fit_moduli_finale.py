@@ -218,30 +218,48 @@ TR = Vo / Vin
 eTR = TR * np.sqrt((eVo / Vo)**2 + (eVin / Vin)**2)
 
 # ============================================================
-# GRAFICO 1: DATI COMPLETI
+# GRAFICO 1A: DATI COMPLETI Vin e Vout
 # ============================================================
-fig, ax = plt.subplots(1, 2, figsize=(5, 4), sharex=True,
-                       constrained_layout=True, width_ratios=[1, 1])
-ax[0].errorbar(fr, Vin, yerr=eVin, fmt='o', label=r'$V_{in}$', ms=2)
-ax[0].errorbar(fr, Vo, yerr=eVo, fmt='o', label=r'$V_{out}$', ms=2)
-ax[0].legend(prop={'size': 10}, loc='best')
-ax[0].set_ylabel(r'Voltaggio (V)')
-apply_axis_settings(ax[0], g1_volt_xmin, g1_volt_xmax, g1_volt_ymin, g1_volt_ymax,
+# Qui aumento di 3 punti la dimensione di tutte le scritte rispetto allo stile globale.
+fig, ax = plt.subplots(1, 1, figsize=(6.2, 4.4), constrained_layout=True)
+
+ax.errorbar(fr, Vin, yerr=eVin, fmt='o', label=r'$V_{in}$',
+            ms=3, color="darkgreen")
+ax.errorbar(fr, Vo, yerr=eVo, fmt='o', label=r'$V_{out}$',
+            ms=3, color='purple')
+
+ax.set_xlabel(r'Frequenza [kHz]', fontsize=13)
+ax.set_ylabel(r'Voltaggio [V]', fontsize=13)
+ax.set_title(r'Tensioni misurate $V_{in}$ e $V_{out}$', fontsize=15)
+ax.legend(prop={'size': 13}, loc='best')
+ax.tick_params(axis='both', which='major', labelsize=13)
+ax.tick_params(axis='both', which='minor', labelsize=13)
+
+apply_axis_settings(ax, g1_volt_xmin, g1_volt_xmax, g1_volt_ymin, g1_volt_ymax,
                     g1_volt_xlog, g1_volt_ylog)
 
-ax[1].errorbar(fr, TR, yerr=eTR, fmt='o',
-               label=r'$T=\frac{V_{out}}{V_{in}}$', ms=2, color='red')
-ax[1].legend(prop={'size': 10}, loc='best')
-ax[1].set_ylabel(r'Funzione di trasferimento $T_R$')
-ax[1].set_xlabel(r'Frequenza (kHz)')
-ax[1].yaxis.set_ticks_position('right')
-ax[1].yaxis.set_label_position('right')
-apply_axis_settings(ax[1], g1_T_xmin, g1_T_xmax, g1_T_ymin, g1_T_ymax,
+plt.savefig(file.replace('.txt', '') + '_1_Vin_Vout.png',
+            bbox_inches='tight', pad_inches=1, transparent=True,
+            facecolor='w', edgecolor='w', orientation='Portrait', dpi=120)
+plt.show()
+
+# ============================================================
+# GRAFICO 1B: DATI COMPLETI funzione di trasferimento
+# ============================================================
+fig, ax = plt.subplots(1, 1, figsize=(6.0, 4.2), constrained_layout=True)
+
+ax.errorbar(fr, TR, yerr=eTR, fmt='o',
+            label=r'$T_R=\frac{V_{out}}{V_{in}}$', ms=2, color='darkred')
+ax.legend(prop={'size': 10}, loc='best')
+ax.set_ylabel(r'Funzione di trasferimento $T_R$')
+ax.set_xlabel(r'Frequenza [kHz]')
+
+apply_axis_settings(ax, g1_T_xmin, g1_T_xmax, g1_T_ymin, g1_T_ymax,
                     g1_T_xlog, g1_T_ylog)
 
-plt.savefig(file.replace('.txt', '') + '_1.png',
+plt.savefig(file.replace('.txt', '') + '_1_T.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
-            facecolor='w', edgecolor='w', orientation='Portrait', dpi=100)
+            facecolor='w', edgecolor='w', orientation='Portrait', dpi=120)
 plt.show()
 
 # ============================================================
@@ -294,14 +312,14 @@ ax[0].plot(x_fit, fit_func(x_fit, *popt), label='Fit', linestyle='--', color='bl
 ax[0].plot(x_fit, fit_func(x_fit, A_init, B_init, C_init),
            label='init guess', linestyle='dashed', color='green')
 ax[0].errorbar(fr, TR, yerr=eTR, fmt='o',
-               label=r'$T=\frac{V_{out}}{V_{in}}$', ms=2, color='red')
+               label=r'$T_R=\frac{V_{out}}{V_{in}}$', ms=2, color='darkred')
 ax[0].legend(loc='upper left')
 ax[0].set_ylabel(r'Funzione di trasferimento $T_R$')
 apply_axis_settings(ax[0], g2_xmin, g2_xmax, g2_ymin, g2_ymax)
 
-ax[1].errorbar(fr, residuA, yerr=eTR, fmt='o', label=r'Residui', ms=2, color='red')
+ax[1].errorbar(fr, residuA, yerr=eTR, fmt='o', label=r'Residui', ms=2, color='darkred')
 ax[1].set_ylabel(r'Residui')
-ax[1].set_xlabel(r'Frequenza (kHz)')
+ax[1].set_xlabel(r'Frequenza [kHz]')
 ax[1].plot(fr, np.zeros(len(fr)), color='black')
 apply_axis_settings(ax[1], g2_xmin, g2_xmax, g2_res_ymin, g2_res_ymax)
 
@@ -312,7 +330,7 @@ plt.show()
 
 # ============================================================
 # GRAFICO EXTRA: FIT + RESIDUI, ASSE X LOGARITMICO
-# con zoom interno vicino alla frequenza di risonanza
+# con zoom separato a destra, entrambi con residui sotto
 # ============================================================
 mask_log = fr > 0
 fr_log = fr[mask_log]
@@ -353,96 +371,166 @@ if MAKE_LOG_RESONANCE_ZOOM:
         zoom_xmin = max(zoom_center * 0.9, np.min(fr_log[fr_log > 0]))
         zoom_xmax = min(zoom_center * 1.1, np.max(fr_log))
 
-fig, ax = plt.subplots(2, 1, figsize=(6.8, 5.0), sharex=True,
-                       constrained_layout=True, height_ratios=[2, 1])
-
-ax[0].plot(x_fit_log, fit_func(x_fit_log, *popt),
-           label='Fit', linestyle='--', color='black')
-ax[0].errorbar(fr_log, TR_log, yerr=eTR_log, fmt='o',
-               label=r'$T=\frac{V_{out}}{V_{in}}$', ms=2, color='red')
-ax[0].set_xscale('log')
-ax[0].set_ylabel(r'Funzione di trasferimento $T_R$')
-ax[0].legend(loc='best')
-ax[0].set_title(r'Fit funzione di trasferimento con asse logaritmico')
-apply_axis_settings(ax[0], g2log_xmin, g2log_xmax, g2log_ymin, g2log_ymax, xlog=True)
-
-# Zoom interno, in alto a sinistra, nel pannello del fit
+# Se non vuoi lo zoom separato, questo blocco produce solo il grafico totale.
 if MAKE_LOG_RESONANCE_ZOOM:
-    # inset_axes e mark_inset sono importati qui per non modificare il resto del codice
-    from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
-
-    axins = inset_axes(
-        ax[0],
-        width="42%",
-        height="42%",
-        loc='upper left',
-        borderpad=1.0,
+    fig = plt.figure(figsize=(10.2, 5.0), constrained_layout=True)
+    gs = fig.add_gridspec(
+        2, 2,
+        height_ratios=[2, 1],
+        width_ratios=[1.55, 1.0],
+        hspace=0.05,
+        wspace=0.12,
     )
 
-    axins.plot(x_fit_log, fit_func(x_fit_log, *popt),
-               linestyle='--', color='black', lw=1.0)
-    axins.errorbar(fr_log, TR_log, yerr=eTR_log, fmt='o',
-                   ms=2, color='red', elinewidth=0.8, capsize=1.5)
+    ax_main = fig.add_subplot(gs[0, 0])
+    ax_res = fig.add_subplot(gs[1, 0], sharex=ax_main)
+    ax_zoom = fig.add_subplot(gs[0, 1])
+    ax_zoom_res = fig.add_subplot(gs[1, 1], sharex=ax_zoom)
+else:
+    fig, (ax_main, ax_res) = plt.subplots(
+        2, 1, figsize=(6.8, 5.0), sharex=True,
+        constrained_layout=True, height_ratios=[2, 1]
+    )
+    ax_zoom = None
+    ax_zoom_res = None
 
-    axins.set_xlim(zoom_xmin, zoom_xmax)
+# Dimensioni aumentate di 3 punti per i due grafici in scala logaritmica
+log_label_fs = 13
+log_title_fs = 15
+log_tick_fs = 13
+log_legend_fs = 13
 
+# ----------------------------
+# Grafico totale, asse x log
+# ----------------------------
+from matplotlib.patches import Rectangle
+from matplotlib.ticker import LogLocator, NullFormatter, ScalarFormatter
+
+ax_main.plot(x_fit_log, fit_func(x_fit_log, *popt),
+             label='Fit', linestyle='--', color='black')
+ax_main.errorbar(fr_log, TR_log, yerr=eTR_log, fmt='o',
+                 label=r'$T_R=\frac{V_{out}}{V_{in}}$', ms=2, color='darkred')
+ax_main.set_xscale('log')
+ax_main.set_ylabel(r'Funzione di trasferimento $T_R$', fontsize=log_label_fs)
+ax_main.legend(loc='best', fontsize=log_legend_fs)
+ax_main.set_title(r'Fit funzione di trasferimento con asse logaritmico', fontsize=log_title_fs)
+apply_axis_settings(ax_main, g2log_xmin, g2log_xmax, g2log_ymin, g2log_ymax, xlog=True)
+
+ax_res.axhline(0, color='black', lw=0.8)
+ax_res.errorbar(fr_log, residu_log, yerr=eTR_log, fmt='o',
+                label=r'Residui', ms=2, color='darkred')
+ax_res.set_xscale('log')
+ax_res.set_ylabel(r'Residui', fontsize=log_label_fs)
+ax_res.set_xlabel(r'Frequenza [kHz]', fontsize=log_label_fs)
+apply_axis_settings(ax_res, g2log_xmin, g2log_xmax, g2log_res_ymin, g2log_res_ymax, xlog=True)
+
+# ----------------------------
+# Zoom separato a destra
+# ----------------------------
+if MAKE_LOG_RESONANCE_ZOOM:
+    # Anche lo zoom usa scala logaritmica sull'asse x.
+    x_fit_zoom = np.logspace(np.log10(zoom_xmin), np.log10(zoom_xmax), 1000)
+    mask_zoom_data = (fr_log >= zoom_xmin) & (fr_log <= zoom_xmax)
+
+    ax_zoom.plot(x_fit_zoom, fit_func(x_fit_zoom, *popt),
+                 label='Fit', linestyle='--', color='black')
+    ax_zoom.errorbar(fr_log[mask_zoom_data], TR_log[mask_zoom_data],
+                     yerr=eTR_log[mask_zoom_data], fmt='o',
+                     label=r'$T_R$', ms=2.2, color='darkred')
+
+    ax_zoom.set_xlim(zoom_xmin, zoom_xmax)
     if g2log_zoom_ymin is not None or g2log_zoom_ymax is not None:
-        axins.set_ylim(g2log_zoom_ymin, g2log_zoom_ymax)
+        ax_zoom.set_ylim(g2log_zoom_ymin, g2log_zoom_ymax)
     else:
-        # Autoscale dello zoom usando dati e curva nel range scelto
-        mask_zoom_data = (fr_log >= zoom_xmin) & (fr_log <= zoom_xmax)
-        mask_zoom_fit = (x_fit_log >= zoom_xmin) & (x_fit_log <= zoom_xmax)
-
         y_values = []
         if np.any(mask_zoom_data):
             y_values.extend((TR_log[mask_zoom_data] - eTR_log[mask_zoom_data]).tolist())
             y_values.extend((TR_log[mask_zoom_data] + eTR_log[mask_zoom_data]).tolist())
-        if np.any(mask_zoom_fit):
-            y_values.extend(fit_func(x_fit_log[mask_zoom_fit], *popt).tolist())
-
+        y_values.extend(fit_func(x_fit_zoom, *popt).tolist())
         y_values = np.asarray(y_values, dtype=float)
         y_values = y_values[np.isfinite(y_values)]
         if len(y_values) > 0:
             ymin = np.min(y_values)
             ymax = np.max(y_values)
             pad = 0.08 * (ymax - ymin) if ymax > ymin else 0.05 * max(abs(ymax), 1.0)
-            axins.set_ylim(ymin - pad, ymax + pad)
+            ax_zoom.set_ylim(ymin - pad, ymax + pad)
 
-    axins.axvline(f0_fit_khz, color='0.35', ls=':', lw=0.9)
+    ax_zoom.set_xscale('log')
+    ax_zoom.axvline(f0_fit_khz, color='0.35', ls=':', lw=0.9)
+    ax_zoom.set_ylabel(r'Funzione di trasferimento $T_R$', fontsize=log_label_fs)
+    ax_zoom.set_title(r'Zoom vicino a $f_0$', fontsize=log_title_fs)
+    ax_zoom.legend(loc='best', fontsize=log_legend_fs)
 
-    # Nessun titolo, nessuna etichetta e nessun numero sugli assi nello zoom.
-    axins.set_xlabel('')
-    axins.set_ylabel('')
-    axins.set_title('')
-    axins.tick_params(
-        axis='both',
-        which='both',
-        labelbottom=False,
-        labelleft=False,
-        labeltop=False,
-        labelright=False,
-        bottom=True,
-        left=True,
-        top=False,
-        right=False,
+    # Rettangolo grigio sul grafico principale: indica la zona riportata nello zoom.
+    zoom_ymin_rect, zoom_ymax_rect = ax_zoom.get_ylim()
+    rect = Rectangle(
+        (zoom_xmin, zoom_ymin_rect),
+        zoom_xmax - zoom_xmin,
+        zoom_ymax_rect - zoom_ymin_rect,
+        fill=False,
+        edgecolor='0.45',
+        linewidth=1.0,
+        linestyle='-',
+        zorder=10,
+        label='Area dello zoom',
     )
-    axins.grid(True, alpha=0.25)
+    ax_main.add_patch(rect)
+    ax_main.legend(loc='best', fontsize=log_legend_fs)
 
-    # rettangolo/connessione tra regione zoomata e inset
-    try:
-        mark_inset(ax[0], axins, loc1=2, loc2=4, fc="none", ec="0.35", lw=0.8, alpha=0.8)
-    except Exception:
-        pass
+    ax_zoom_res.axhline(0, color='black', lw=0.8)
+    ax_zoom_res.errorbar(fr_log[mask_zoom_data], residu_log[mask_zoom_data],
+                         yerr=eTR_log[mask_zoom_data], fmt='o',
+                         ms=2.2, color='darkred')
+    ax_zoom_res.set_xlim(zoom_xmin, zoom_xmax)
+    ax_zoom_res.set_xscale('log')
+    ax_zoom_res.set_ylabel(r'Residui', fontsize=log_label_fs)
+    ax_zoom_res.set_xlabel(r'Frequenza [kHz]', fontsize=log_label_fs)
 
-ax[1].axhline(0, color='black', lw=0.8)
-ax[1].errorbar(fr_log, residu_log, yerr=eTR_log, fmt='o',
-               label=r'Residui', ms=2, color='red')
-ax[1].set_xscale('log')
-ax[1].set_ylabel(r'Residui')
-ax[1].set_xlabel(r'Frequenza (kHz)')
-apply_axis_settings(ax[1], g2log_xmin, g2log_xmax, g2log_res_ymin, g2log_res_ymax, xlog=True)
+    # Range dei residui nello zoom: se non specificato, autoscale sui residui locali.
+    if g2log_res_ymin is not None or g2log_res_ymax is not None:
+        ax_zoom_res.set_ylim(g2log_res_ymin, g2log_res_ymax)
+    else:
+        rz = residu_log[mask_zoom_data]
+        erz = eTR_log[mask_zoom_data]
+        if len(rz) > 0:
+            yres = np.concatenate([rz - erz, rz + erz, [0.0]])
+            ymin = np.nanmin(yres)
+            ymax = np.nanmax(yres)
+            pad = 0.10 * (ymax - ymin) if ymax > ymin else 0.02
+            ax_zoom_res.set_ylim(ymin - pad, ymax + pad)
 
-plt.savefig(file.replace('.txt', '') + '_2_logx_zoom_inset.png',
+
+# Tick label piu grandi per i pannelli in scala logaritmica
+for axx in [ax_main, ax_res]:
+    axx.tick_params(axis='both', which='major', labelsize=log_tick_fs)
+    axx.tick_params(axis='both', which='minor', labelsize=log_tick_fs)
+
+if MAKE_LOG_RESONANCE_ZOOM:
+    for axx in [ax_zoom, ax_zoom_res]:
+        axx.tick_params(axis='both', which='major', labelsize=log_tick_fs)
+        axx.tick_params(axis='both', which='minor', labelsize=log_tick_fs)
+
+# Riduci il numero di etichette sull'asse x, ma lasciandone alcune visibili.
+# Nel grafico principale mostro poche frequenze scelte in kHz.
+main_xticks = [5, 10, 30, 100, 300, 900]
+main_xticks = [v for v in main_xticks if np.min(fr_log) <= v <= np.max(fr_log)]
+
+for axx in [ax_main, ax_res]:
+    axx.set_xticks(main_xticks)
+    axx.set_xticklabels([f'{v:g}' for v in main_xticks], fontsize=log_tick_fs)
+    axx.xaxis.set_minor_formatter(NullFormatter())
+
+# Nello zoom mostro 6 etichette equidistanti nel range selezionato.
+# Le etichette sono stampate con una sola cifra decimale, tipo 130.1.
+if MAKE_LOG_RESONANCE_ZOOM:
+    zoom_xticks = np.linspace(zoom_xmin, zoom_xmax, 6)
+
+    for axx in [ax_zoom, ax_zoom_res]:
+        axx.set_xticks(zoom_xticks)
+        axx.set_xticklabels([f'{v:.1f}' for v in zoom_xticks], fontsize=log_tick_fs)
+        axx.xaxis.set_minor_formatter(NullFormatter())
+
+plt.savefig(file.replace('.txt', '') + '_2_logx_zoom_side.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
             facecolor='w', edgecolor='w', orientation='Portrait', dpi=120)
 plt.show()
@@ -506,14 +594,14 @@ ax[0].plot(
     linestyle='--',
     color='blue',
 )
-ax[0].errorbar(fr, TR, yerr=eTR, fmt='o', label=r'$V_{out}$', ms=2, color='red')
+ax[0].errorbar(fr, TR, yerr=eTR, fmt='o', label=r'$V_{out}$', ms=2, color='darkred')
 ax[0].legend(loc='upper left')
 ax[0].set_ylabel(r'Funzione di trasferimento $T_R$')
 apply_axis_settings(ax[0], g3_xmin, g3_xmax, g3_ymin, g3_ymax)
 
-ax[1].errorbar(fr, residui_chi2, yerr=eTR, fmt='o', label=r'Residui', ms=2, color='red')
+ax[1].errorbar(fr, residui_chi2, yerr=eTR, fmt='o', label=r'Residui', ms=2, color='darkred')
 ax[1].set_ylabel(r'Residui')
-ax[1].set_xlabel(r'Frequenza (kHz)')
+ax[1].set_xlabel(r'Frequenza [kHz]')
 ax[1].plot(fr, np.zeros(N), color='black')
 apply_axis_settings(ax[1], g3_xmin, g3_xmax, g3_res_ymin, g3_res_ymax)
 
@@ -624,7 +712,7 @@ ax[1, 1].set_yticks([int(chi2_min), int(chi2_min + 4), int(chi2_min + 6)])
 
 ax[1, 0].set_axis_off()
 ax[0, 0].set_ylabel(r'$Q$-valore')
-ax[1, 1].set_xlabel(r'$\omega_0$ (Hz)', loc='center')
+ax[1, 1].set_xlabel(r'$\omega_0$ [Hz]', loc='center')
 
 # Range automatici predefiniti per i profili, modificabili dalle variabili g4_*.
 default_prof_xmin = int(chi2_min - 1)
