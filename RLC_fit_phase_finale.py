@@ -12,7 +12,7 @@ import time
 
 # --- File di input ---
 # 3 colonne: frequenza (kHz)   Dt (ns)   scala_Dt (ns)
-file = 'RLC_Rphase.txt'
+file = 'RLC_phase.txt'
 
 # --- Stime iniziali per il fit ---
 # omega0 = 2*pi*f0  con f0 in kHz -> rad/s
