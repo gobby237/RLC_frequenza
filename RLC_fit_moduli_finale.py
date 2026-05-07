@@ -211,8 +211,10 @@ N = len(fr[fr > 0])
 # ============================================================
 # CALCOLO INCERTEZZE
 # ============================================================
-eVin = np.sqrt((reading_error_div * Vdiv_in)**2 + (scale_error_frac * Vin)**2)
-eVo = np.sqrt((reading_error_div * VdivR)**2 + (scale_error_frac * Vo)**2)
+eVin = 0.4*np.sqrt((reading_error_div * Vdiv_in)**2  + (scale_error_frac * Vin)**2)
+eVo = 0.4*np.sqrt((reading_error_div * VdivR)**2 + (scale_error_frac * Vo)**2)
+
+
 
 TR = Vo / Vin
 eTR = TR * np.sqrt((eVo / Vo)**2 + (eVin / Vin)**2)
@@ -288,18 +290,24 @@ popt, pcov = curve_fit(
 )
 perr = np.sqrt(np.diag(pcov))
 
-print(
-    ' ampiezza = {a:.3f} +/- {b:.3f} \n omega0 = {c:.1f} +/- {d:.1f} kHz \n Q-valore = {e:.1f} +/- {f:.1f}'.format(
-        a=popt[0], b=perr[0],
-        c=popt[1] / 1000, d=perr[1] / 1000,
-        e=popt[2], f=perr[2],
-    )
-)
-
 residuA = TR - fit_func(fr, *popt)
 chisq = np.sum((residuA / eTR)**2)
 df = N - 3
 chisq_rid = chisq / df
+
+np.set_printoptions(precision=6, suppress=False)
+print('============== RISULTATI FIT SCIPY ====================')
+print(f'chi2/ndf = {chisq_rid:.6g}  (chi2 = {chisq:.6g}, ndf = {df})')
+print('Matrice di covarianza pcov, ordine parametri: [A, omega0, Q]')
+print(pcov)
+print(
+    'A = {a:.6g} +/- {b:.2g} \nomega0 = {c:.6g} +/- {d:.2g} rad/s \nQ = {e:.6g} +/- {f:.2g}'.format(
+        a=popt[0], b=perr[0],
+        c=popt[1], d=perr[1],
+        e=popt[2], f=perr[2],
+    )
+)
+print('=======================================================')
 
 # ============================================================
 # GRAFICO 2: FIT + RESIDUI, ASSE LINEARE
@@ -613,7 +621,8 @@ plt.show()
 # ============================================================
 # PROFILI DEL CHI2 E CALCOLO DEGLI ERRORI
 # ============================================================
-chi2D = profi2D(1, mappa)
+chi2D = profi2D(1, mappa)       # profilo (omega0, Q), minimizzato su A
+chi2D_AB = profi2D(3, mappa)    # profilo (A, omega0), minimizzato su Q
 
 prof_A = profi1D([2, 3], mappa)
 prof_B = profi1D([1, 3], mappa)
@@ -738,6 +747,100 @@ if g4_C_ymin is not None or g4_C_ymax is not None:
     ax[0, 0].set_ylim(g4_C_ymin, g4_C_ymax)
 
 plt.savefig(file.replace('.txt', '') + '_4.png',
+            bbox_inches='tight', pad_inches=1, transparent=True,
+            facecolor='w', edgecolor='w', orientation='Portrait', dpi=100)
+plt.show()
+
+
+# ============================================================
+# GRAFICO 5: PROFILI CHI2 NEL PIANO (A, omega0)
+# ============================================================
+# Questo grafico e' analogo al Grafico 4, ma mostra la profilazione
+# nel piano ampiezza A - omega0, minimizzando il chi2 sul parametro Q.
+level_AB = np.linspace(np.min(chi2D_AB), np.max(chi2D_AB), 100)
+
+fig, ax = plt.subplots(2, 2, figsize=(5.5, 5), constrained_layout=True,
+                       height_ratios=[3, 1], width_ratios=[1, 3],
+                       sharex='col', sharey='row')
+fig.suptitle(r'$\chi^2 \left(A, \omega_0 \right)$')
+
+# --- Pannello principale: contour 2D (A su x, omega0 su y) ---
+im = ax[0, 1].contourf(A_chi, B_chi, chi2D_AB, levels=level_AB, cmap=cmap)
+cbar = fig.colorbar(im, extend='both', shrink=0.9, ax=ax[0, 1],
+                    ticks=[int(chi2_min), int(chi2_min + 2),
+                           int(chi2_min + 4), int(chi2_min + 6)])
+cbar.set_label(r'$\chi^2$', rotation=360)
+
+CS = ax[0, 1].contour(
+    A_chi,
+    B_chi,
+    chi2D_AB,
+    levels=[chi2_min + 0.0001, chi2_min + 1, chi2_min + 2.3, chi2_min + 3.8],
+    linewidths=1,
+    colors='k',
+    alpha=0.5,
+    linestyles='dotted',
+)
+ax[0, 1].clabel(CS, inline=True, fontsize=9, fmt='%.1f')
+ax[0, 1].text(
+    A_chi[np.argmin(prof_A)],
+    B_chi[np.argmin(prof_B)],
+    r'{g:.0f}'.format(g=chi2_min),
+    color='k',
+    alpha=0.5,
+    fontsize=9,
+)
+
+# Linee di errore nel piano A-omega0
+ax[0, 1].plot([A0, A1], [B_chi[B_sx], B_chi[B_sx]], color=line_c, ls='dashed')
+ax[0, 1].plot([A0, A1], [B_chi[B_dx], B_chi[B_dx]], color=line_c, ls='dashed')
+ax[0, 1].plot([A_chi[A_sx], A_chi[A_sx]], [B0, B1], color=line_c, ls='dashed')
+ax[0, 1].plot([A_chi[A_dx], A_chi[A_dx]], [B0, B1], color=line_c, ls='dashed')
+
+# --- Pannello sinistro: profilo di omega0 (asse y) ---
+ax[0, 0].plot(prof_B, B_chi, ls='-')
+ax[0, 0].plot([int(chi2_min - 1), int(chi2_min + 4)],
+              [B_chi[B_sx], B_chi[B_sx]], color=line_c, ls='dashed')
+ax[0, 0].plot([int(chi2_min - 1), int(chi2_min + 4)],
+              [B_chi[B_dx], B_chi[B_dx]], color=line_c, ls='dashed')
+ax[0, 0].set_xticks([int(chi2_min), int(chi2_min + 1), int(chi2_min + 4), int(chi2_min + 6)])
+ax[0, 0].set_ylabel(r'$\omega_0$ [rad/s]')
+ax[0, 0].text(int(chi2_min + 1), B_chi[np.argmin(prof_B)],
+              r'{g:.3e}'.format(g=B_chi[np.argmin(prof_B)]),
+              color='k', alpha=0.5, fontsize=9)
+ax[0, 0].text(int(chi2_min + 2), B_chi[B_sx],
+              r'{g:.0e}'.format(g=errBB), color='b', alpha=0.5, fontsize=9)
+ax[0, 0].text(int(chi2_min + 2), B_chi[B_dx],
+              r'{g:.0e}'.format(g=-errB), color='r', alpha=0.5, fontsize=9)
+
+# --- Pannello in basso: profilo di A (asse x) ---
+ax[1, 1].plot(A_chi, prof_A)
+ax[1, 1].plot([A_chi[A_sx], A_chi[A_sx]], [int(chi2_min - 1), int(chi2_min + 4)],
+              color=line_c, ls='dashed')
+ax[1, 1].plot([A_chi[A_dx], A_chi[A_dx]], [int(chi2_min - 1), int(chi2_min + 4)],
+              color=line_c, ls='dashed')
+ax[1, 1].text(A_chi[np.argmin(prof_A)], int(chi2_min + 1),
+              r'{g:.3e}'.format(g=A_chi[np.argmin(prof_A)]),
+              color='k', alpha=0.5, fontsize=9)
+ax[1, 1].text(A_chi[A_sx], int(chi2_min + 2),
+              r'{g:.1e}'.format(g=errAA), color='b', alpha=0.5, fontsize=9)
+ax[1, 1].text(A_chi[A_dx], int(chi2_min + 2),
+              r'{g:.1e}'.format(g=-errA), color='r', alpha=0.5, fontsize=9)
+ax[1, 1].set_yticks([int(chi2_min), int(chi2_min + 4), int(chi2_min + 6)])
+ax[1, 1].set_xlabel(r'$A$ [-]', loc='center')
+
+ax[1, 0].set_axis_off()
+
+ax[0, 0].set_xlim(
+    default_prof_xmin if g4_prof_xmin is None else g4_prof_xmin,
+    default_prof_xmax if g4_prof_xmax is None else g4_prof_xmax,
+)
+ax[1, 1].set_ylim(
+    default_prof_ymin if g4_prof_ymin is None else g4_prof_ymin,
+    default_prof_ymax if g4_prof_ymax is None else g4_prof_ymax,
+)
+
+plt.savefig(file.replace('.txt', '') + '_5_A_omega0.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
             facecolor='w', edgecolor='w', orientation='Portrait', dpi=100)
 plt.show()
