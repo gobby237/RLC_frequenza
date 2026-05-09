@@ -28,8 +28,13 @@ n_sigma_scan = 2   # semiampiezza in unita di sigma del fit
 step_scan = 100    # punti per parametro (griglia step x step)
 
 # --- Stile grafico ---
-FONT_INCREMENT = 3
+FONT_INCREMENT = 5
 DT_COLOR = 'teal'   # non rosso e non blu scuro
+
+# --- Tick sull'asse y nei grafici dei fit ---
+# Aumenta leggermente il numero di etichette, senza renderle troppo fitte.
+fit_y_tick_nbins = 9
+res_y_tick_nbins = 4
 
 # --- Debug ---
 DEB = False
@@ -63,6 +68,24 @@ LEGEND_BIG = 10 + FONT_INCREMENT
 LEGEND_SMALL = 8 + FONT_INCREMENT
 CLABEL_SIZE = 9 + FONT_INCREMENT
 TEXT_SIZE = 8 + FONT_INCREMENT
+
+
+
+def format_uncertainty_label(value):
+    """
+    Formatta le incertezze mostrate nei profili del chi2 con una
+    precisione leggibile: ad esempio 0.033 -> 0.03 e 1.85 -> 1.9.
+    """
+    value = abs(float(value))
+    if value == 0:
+        return '0'
+    if value < 0.01:
+        return f'{value:.1g}'
+    if value < 0.1:
+        return f'{value:.2f}'
+    if value < 10:
+        return f'{value:.1f}'
+    return f'{value:.1g}'
 
 # ============================================================
 # FUNZIONE DI FIT
@@ -135,7 +158,7 @@ plt.show()
 # GRAFICO 1: dati completi con errori
 # ============================================================
 fig, ax = plt.subplots(1, 1, figsize=(6, 4), constrained_layout=True)
-ax.errorbar(fr_all, phi_all, yerr=ephi_all, fmt='o', ms=2, color='blue',
+ax.errorbar(fr_all, phi_all, yerr=ephi_all, fmt='o', ms=2, color='darkblue',
             label=r'$\Delta\phi_R(f)$')
 ax.axhline(np.pi / 2, color='gray', ls='dashed', lw=0.8)
 ax.axhline(-np.pi / 2, color='gray', ls='dashed', lw=0.8)
@@ -195,22 +218,24 @@ fig, ax = plt.subplots(2, 1, figsize=(5, 4), sharex=True,
                        constrained_layout=True, height_ratios=[2, 1])
 
 ax[0].plot(x_fit, fitf_phase_R(x_fit, *popt),
-           label='Fit (SciPy)', ls='--', color='black')
-ax[0].plot(x_fit, fitf_phase_R(x_fit, B_init, C_init),
-           label='Guess iniziale', ls='dashed', color='green')
-ax[0].errorbar(fr, phi, yerr=ephi, fmt='o', ms=2, color='blue',
+           label='Fit', ls='--', color='black')
+ax[0].errorbar(fr, phi, yerr=ephi, fmt='o', ms=2, color='darkblue',
                label=r'$\Delta\phi_R$')
-ax[0].axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8)
-ax[0].axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8)
+ax[0].axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8,
+              label=r'$0, \ \pm\pi/4$')
+ax[0].axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8,
+              label='_nolegend_')
 ax[0].axhline(0, color='gray', ls='dotted', lw=0.8)
 ax[0].set_ylabel(r'$\Delta\phi_R$ [rad]')
+ax[0].yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=fit_y_tick_nbins))
 ax[0].legend(loc='best', prop={'size': LEGEND_SMALL})
 
-ax[1].errorbar(fr, residuA, yerr=ephi, fmt='o', ms=2, color='blue',
+ax[1].errorbar(fr, residuA, yerr=ephi, fmt='o', ms=2, color='darkblue',
                label='Residui')
 ax[1].axhline(0, color='black', lw=0.8)
-ax[1].set_ylabel(r'Residui [rad]')
+ax[1].set_ylabel(r'Residui')
 ax[1].set_xlabel(r'Frequenza [kHz]')
+ax[1].yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=res_y_tick_nbins))
 
 plt.savefig(file.replace('.txt', '') + '_2.png',
             bbox_inches='tight', transparent=True,
@@ -267,20 +292,24 @@ fig, ax = plt.subplots(2, 1, figsize=(5, 4), sharex=True,
 
 ax[0].plot(x_fit,
            fitf_phase_R(x_fit, B_chi[iB_min], C_chi[iC_min]),
-           label=r'Fit ($\chi^2$ min)', ls='--', color='blue')
-ax[0].errorbar(fr, phi, yerr=ephi, fmt='o', ms=2, color='blue',
+           label=r'Fit ($\chi^2$ min)', ls='--', color='black')
+ax[0].errorbar(fr, phi, yerr=ephi, fmt='o', ms=2, color='darkblue',
                label=r'$\Delta\phi_R$')
-ax[0].axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8)
-ax[0].axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8)
+ax[0].axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8,
+              label=r'$\pm\pi/4$')
+ax[0].axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8,
+              label='_nolegend_')
 ax[0].axhline(0, color='gray', ls='dotted', lw=0.8)
 ax[0].set_ylabel(r'$\Delta\phi_R$ [rad]')
+ax[0].yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=fit_y_tick_nbins))
 ax[0].legend(loc='best', prop={'size': LEGEND_SMALL})
 
 residui_chi2 = phi - model_min
-ax[1].errorbar(fr, residui_chi2, yerr=ephi, fmt='o', ms=2, color='blue')
+ax[1].errorbar(fr, residui_chi2, yerr=ephi, fmt='o', ms=2, color='darkblue')
 ax[1].axhline(0, color='black', lw=0.8)
-ax[1].set_ylabel(r'Residui [rad]')
+ax[1].set_ylabel(r'Residui')
 ax[1].set_xlabel(r'Frequenza [kHz]')
+ax[1].yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=res_y_tick_nbins))
 
 plt.savefig(file.replace('.txt', '') + '_3.png',
             bbox_inches='tight', transparent=True,
@@ -327,39 +356,43 @@ line_c = 'gray'
 
 level = np.linspace(np.min(mappa), np.max(mappa), 100)
 
+# Solo per la visualizzazione: omega0 viene mostrato in krad/s.
+B_chi_plot = B_chi / 1.0e3
+B0_plot = B0 / 1.0e3
+B1_plot = B1 / 1.0e3
+errB_plot = errB / 1.0e3
+errBB_plot = errBB / 1.0e3
+
 fig, ax = plt.subplots(2, 2, figsize=(5.5, 5), constrained_layout=True,
                        height_ratios=[3, 1], width_ratios=[1, 3],
                        sharex='col', sharey='row')
 fig.suptitle(r'$\chi^2\left(\omega_0,\, Q\right)$')
 
 # --- Pannello principale: contour 2D (omega0 su x, Q su y) ---
-im = ax[0, 1].contourf(B_chi, C_chi, mappa.T, levels=level, cmap=cmap)
+im = ax[0, 1].contourf(B_chi_plot, C_chi, mappa.T, levels=level, cmap=cmap)
 cbar = fig.colorbar(im, extend='both', shrink=0.9, ax=ax[0, 1],
                     ticks=[int(chi2_min),
                            int(chi2_min + 2),
                            int(chi2_min + 4),
                            int(chi2_min + 6)])
-cbar.set_label(r'$\chi^2$ [-]', rotation=360)
+cbar.set_label(r'$\chi^2$', rotation=360, labelpad=14)
 
-CS = ax[0, 1].contour(B_chi, C_chi, mappa.T,
+CS = ax[0, 1].contour(B_chi_plot, C_chi, mappa.T,
                       levels=[chi2_min + 0.0001,
                               chi2_min + 1.0,
                               chi2_min + 2.3,
                               chi2_min + 3.8],
                       linewidths=1, colors='k', alpha=0.5, linestyles='dotted')
 ax[0, 1].clabel(CS, inline=True, fontsize=CLABEL_SIZE, fmt='%.1f')
-ax[0, 1].text(B_chi[iB_min], C_chi[iC_min],
+ax[0, 1].text(B_chi_plot[iB_min], C_chi[iC_min],
               fr'{chi2_min:.0f}', color='k', alpha=0.5, fontsize=CLABEL_SIZE)
 
 # Linee di errore
-ax[0, 1].plot([B0, B1], [C_chi[C_sx], C_chi[C_sx]], color=line_c, ls='dashed')
-ax[0, 1].plot([B0, B1], [C_chi[C_dx], C_chi[C_dx]], color=line_c, ls='dashed')
-ax[0, 1].plot([B_chi[B_sx], B_chi[B_sx]], [C0, C1], color=line_c, ls='dashed')
-ax[0, 1].plot([B_chi[B_dx], B_chi[B_dx]], [C0, C1], color=line_c, ls='dashed')
+ax[0, 1].plot([B0_plot, B1_plot], [C_chi[C_sx], C_chi[C_sx]], color=line_c, ls='dashed')
+ax[0, 1].plot([B0_plot, B1_plot], [C_chi[C_dx], C_chi[C_dx]], color=line_c, ls='dashed')
+ax[0, 1].plot([B_chi_plot[B_sx], B_chi_plot[B_sx]], [C0, C1], color=line_c, ls='dashed')
+ax[0, 1].plot([B_chi_plot[B_dx], B_chi_plot[B_dx]], [C0, C1], color=line_c, ls='dashed')
 
-ax[0, 1].set_xlabel(r'$\omega_0$ [rad/s]')
-ax[0, 1].xaxis.set_label_position('top')
-ax[0, 1].xaxis.tick_top()
 
 # --- Pannello sinistro: profilo di Q (asse y) ---
 ax[0, 0].plot(prof_C, C_chi, ls='-')
@@ -369,29 +402,29 @@ ax[0, 0].plot([chi2_min - 1, chi2_min + 4],
               [C_chi[C_dx], C_chi[C_dx]], color=line_c, ls='dashed')
 ax[0, 0].set_xticks([int(chi2_min), int(chi2_min + 1), int(chi2_min + 4)])
 ax[0, 0].set_xlim(chi2_min - 1, chi2_min + 4)
-ax[0, 0].set_ylabel(r'$Q$ [-]')
+ax[0, 0].set_ylabel(r'$Q$-valore')
 ax[0, 0].text(chi2_min + 1.2, C_chi[iC_min],
               fr'{C_chi[iC_min]:.3f}', color='k', alpha=0.6, fontsize=TEXT_SIZE)
 ax[0, 0].text(chi2_min + 1.2, C_chi[C_sx],
-              fr'$+{errCC:.3f}$', color='b', alpha=0.6, fontsize=TEXT_SIZE)
+              fr'$+{format_uncertainty_label(errCC)}$', color='b', alpha=0.6, fontsize=TEXT_SIZE)
 ax[0, 0].text(chi2_min + 1.2, C_chi[C_dx],
-              fr'$-{errC:.3f}$', color='r', alpha=0.6, fontsize=TEXT_SIZE)
+              fr'$-{format_uncertainty_label(errC)}$', color='r', alpha=0.6, fontsize=TEXT_SIZE)
 
 # --- Pannello in basso: profilo di omega0 (asse x) ---
-ax[1, 1].plot(B_chi, prof_B)
-ax[1, 1].plot([B_chi[B_sx], B_chi[B_sx]], [chi2_min - 1, chi2_min + 4],
+ax[1, 1].plot(B_chi_plot, prof_B)
+ax[1, 1].plot([B_chi_plot[B_sx], B_chi_plot[B_sx]], [chi2_min - 1, chi2_min + 4],
               color=line_c, ls='dashed')
-ax[1, 1].plot([B_chi[B_dx], B_chi[B_dx]], [chi2_min - 1, chi2_min + 4],
+ax[1, 1].plot([B_chi_plot[B_dx], B_chi_plot[B_dx]], [chi2_min - 1, chi2_min + 4],
               color=line_c, ls='dashed')
 ax[1, 1].set_yticks([int(chi2_min), int(chi2_min + 1), int(chi2_min + 4)])
 ax[1, 1].set_ylim(chi2_min - 1, chi2_min + 4)
-ax[1, 1].set_xlabel(r'$\omega_0$ [rad/s]')
-ax[1, 1].text(B_chi[iB_min], chi2_min + 1.5,
-              fr'{B_chi[iB_min]:.3e}', color='k', alpha=0.6, fontsize=TEXT_SIZE)
-ax[1, 1].text(B_chi[B_sx], chi2_min + 2.5,
-              fr'$+{errBB:.2e}$', color='b', alpha=0.6, fontsize=TEXT_SIZE)
-ax[1, 1].text(B_chi[B_dx], chi2_min + 2.5,
-              fr'$-{errB:.2e}$', color='r', alpha=0.6, fontsize=TEXT_SIZE)
+ax[1, 1].set_xlabel(r'$\omega_0$ [krad/s]', loc='center')
+ax[1, 1].text(B_chi_plot[iB_min], chi2_min + 1.5,
+              fr'{B_chi_plot[iB_min]:.3e}', color='k', alpha=0.6, fontsize=TEXT_SIZE)
+ax[1, 1].text(B_chi_plot[B_sx], chi2_min + 2.5,
+              fr'$+{format_uncertainty_label(errBB_plot)}$', color='b', alpha=0.6, fontsize=TEXT_SIZE)
+ax[1, 1].text(B_chi_plot[B_dx], chi2_min + 2.5,
+              fr'$-{format_uncertainty_label(errB_plot)}$', color='r', alpha=0.6, fontsize=TEXT_SIZE)
 
 ax[1, 0].set_axis_off()
 

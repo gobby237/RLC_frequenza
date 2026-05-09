@@ -21,8 +21,7 @@ Parametri di disturbo ancora profilati per descrivere bene le curve reali:
            L'offset iniziale phi0 e il delay temporale sono fissati a zero.
 
 Output:
-  - chi2_LC_moduli_profile_R.png
-  - chi2_LC_phase_profile_R.png
+  - le due mappe vengono visualizzate a schermo con plt.show(), non salvate su file
 """
 
 import time
@@ -30,6 +29,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.colors import LogNorm
+from matplotlib.text import Text
 from scipy.optimize import curve_fit
 
 try:
@@ -107,14 +107,52 @@ R_MIN_ABS_OHM = 0.05
 R_MAX_ABS_OHM = 500.0
 
 # --- Grafica ---
-USE_TEX = False
+USE_TEX = True
 FONT_SIZE = 12
-CMAP_NAME = 'jet'              # simile all'esempio; prova anche 'plasma_r'
+
+# Numero unico modificabile: viene sommato alla dimensione di tutti i font
+# presenti nelle mappe del chi quadro. Usa 0 per lasciare invariato.
+GRAPH_FONT_PLUS = 7
+
+# Distanza del titolo dal grafico, in punti. Il default matplotlib e' circa 6;
+# qui e' ridotto di 2 punti per avvicinare il titolo alla mappa.
+TITLE_PAD = 6
+
+# Distanza orizzontale dell'etichetta della colorbar.
+# Aumenta il valore se il simbolo del chi quadro si sovrappone ai numeri della scala.
+MOD_CBAR_LABELPAD = 8
+PHASE_CBAR_LABELPAD = 18
+
+CMAP_NAME = 'plasma_r'         # stesso stile delle mappe/profilazioni del chi2 usate negli altri codici
 COLOR_MODE = 'log_chi2'        # 'log_chi2' oppure 'delta_chi2'
 DELTA_CHI2_COLOR_MAX = None    # usato se COLOR_MODE='delta_chi2'
 CONTOUR_LEVELS_DELTA = [1.0, 2.30, 6.18, 11.83, 25.0, 50.0, 100.0]
-PLOT_UNITS = 'SI'              # 'SI' -> L [H], C [F]; 'lab' -> L [mH], C [nF]
+PLOT_UNITS = 'lab'             # 'SI' -> L [H], C [F]; 'lab' -> L [mH], C [nF]
 SHOW_LC_CONSTANT_LINE = True
+
+# --- Valori stimati a priori da mostrare sulle mappe ---
+# Le linee tratteggiate indicano i valori misurati/stimati indipendentemente.
+# Vengono convertite automaticamente nelle unita mostrate sugli assi.
+SHOW_PRIOR_LINES = True
+L_PRIOR_H = 286e-6
+C_PRIOR_F = 5.19e-9
+PRIOR_LINE_COLOR = 'magenta'
+PRIOR_LINE_WIDTH = 2.0
+
+# --- Zoom e range manuali delle mappe ---
+# I range sono espressi nelle unita visualizzate sul grafico:
+# se PLOT_UNITS='SI' allora x=L [H], y=C [F];
+# se PLOT_UNITS='lab' allora x=L [mH], y=C [nF].
+# Se lasci tutti i valori a None, viene applicato un leggero zoom automatico
+# intorno al minimo trovato. Metti MAP_AUTO_ZOOM = False per vedere tutto il range.
+MAP_AUTO_ZOOM = True
+MAP_ZOOM_FRACTION = 0.75   # 1.0 = tutto il range; 0.75 = zoom leggero
+
+MOD_MAP_XMIN, MOD_MAP_XMAX = None, None
+MOD_MAP_YMIN, MOD_MAP_YMAX = None, None
+
+PHASE_MAP_XMIN, PHASE_MAP_XMAX = None, None
+PHASE_MAP_YMIN, PHASE_MAP_YMAX = None, None
 
 # --- Output ---
 OUT_MODULI_MAP = 'chi2_LC_moduli_profile_R_true_window.png'
@@ -133,6 +171,49 @@ plt.rcParams.update({
     'ytick.labelsize': FONT_SIZE - 1,
     'figure.constrained_layout.use': True,
 })
+
+# Stile locale usato solo per le mappe/profilazioni del chi2,
+# allineato al grafico di profilazione del chi2 del codice dei moduli.
+chi2_profile_rc = {
+    'legend.fontsize': '10',
+    'legend.loc': 'upper right',
+    'legend.frameon': True,
+    'legend.framealpha': 0.8,
+    'legend.facecolor': 'w',
+    'legend.edgecolor': 'w',
+    'figure.figsize': (6, 4),
+    'axes.labelsize': '10',
+    'figure.titlesize': '14',
+    'axes.titlesize': '12',
+    'xtick.labelsize': '10',
+    'ytick.labelsize': '10',
+    'lines.linewidth': '1',
+    'text.usetex': USE_TEX,
+    'axes.formatter.min_exponent': '2',
+    'figure.subplot.left': '0.125',
+    'figure.subplot.bottom': '0.125',
+    'figure.subplot.right': '0.925',
+    'figure.subplot.top': '0.925',
+    'figure.subplot.wspace': '0.1',
+    'figure.subplot.hspace': '0.1',
+    'figure.constrained_layout.use': True,
+}
+
+
+def add_fontsize_to_figure(fig, delta):
+    """
+    Aumenta di delta punti tutti i font presenti nella figura:
+    titoli, label assi, tick, legende, colorbar e testi interni.
+    """
+    if delta is None or delta == 0:
+        return
+
+    already_done = set()
+    for txt in fig.findobj(match=lambda artist: isinstance(artist, Text)):
+        if id(txt) in already_done:
+            continue
+        already_done.add(id(txt))
+        txt.set_fontsize(max(1, txt.get_fontsize() + delta))
 
 # ============================================================
 # MODELLI
@@ -232,8 +313,10 @@ def load_moduli_data(filename):
     vdiv_out = data[:, 4]
 
     # Errori del codice moduli originale.
-    e_vin = np.sqrt((READING_ERROR_DIV * vdiv_in) ** 2 + (SCALE_ERROR_FRAC * vin) ** 2)
-    e_vout = np.sqrt((READING_ERROR_DIV * vdiv_out) ** 2 + (SCALE_ERROR_FRAC * vout) ** 2)
+    # Il fattore 0.4 converte l'errore massimo di lettura in deviazione standard
+    # assumendo una distribuzione uniforme/rettangolare come nel trattamento dei dati.
+    e_vin = 0.4 * np.sqrt((READING_ERROR_DIV * vdiv_in) ** 2 + (SCALE_ERROR_FRAC * vin) ** 2)
+    e_vout = 0.4 * np.sqrt((READING_ERROR_DIV * vdiv_out) ** 2 + (SCALE_ERROR_FRAC * vout) ** 2)
 
     tr = vout / vin
     e_tr = tr * np.sqrt((e_vout / vout) ** 2 + (e_vin / vin) ** 2)
@@ -553,8 +636,58 @@ def axes_values_for_plot(L_vals, C_vals):
     raise ValueError("PLOT_UNITS deve essere 'SI' oppure 'lab'.")
 
 
+def axis_limits_around_min(axis_values, axis_minimum, manual_min=None, manual_max=None):
+    """
+    Restituisce limiti di visualizzazione per una mappa.
+    I limiti manuali hanno priorita; altrimenti, se MAP_AUTO_ZOOM=True,
+    applica uno zoom leggero centrato sul minimo trovato.
+    """
+    full_min = float(np.nanmin(axis_values))
+    full_max = float(np.nanmax(axis_values))
+
+    if manual_min is not None or manual_max is not None:
+        return (full_min if manual_min is None else manual_min,
+                full_max if manual_max is None else manual_max)
+
+    if not MAP_AUTO_ZOOM or MAP_ZOOM_FRACTION is None or MAP_ZOOM_FRACTION >= 1.0:
+        return full_min, full_max
+
+    frac = max(float(MAP_ZOOM_FRACTION), 1.0e-6)
+
+    if LC_GRID_SCALE == 'log':
+        log_full_min = np.log10(full_min)
+        log_full_max = np.log10(full_max)
+        log_center = np.log10(axis_minimum)
+        width = (log_full_max - log_full_min) * frac
+        lo = log_center - width / 2.0
+        hi = log_center + width / 2.0
+        if lo < log_full_min:
+            hi += log_full_min - lo
+            lo = log_full_min
+        if hi > log_full_max:
+            lo -= hi - log_full_max
+            hi = log_full_max
+        lo = max(lo, log_full_min)
+        hi = min(hi, log_full_max)
+        return 10.0 ** lo, 10.0 ** hi
+
+    width = (full_max - full_min) * frac
+    lo = axis_minimum - width / 2.0
+    hi = axis_minimum + width / 2.0
+    if lo < full_min:
+        hi += full_min - lo
+        lo = full_min
+    if hi > full_max:
+        lo -= hi - full_max
+        hi = full_max
+    lo = max(lo, full_min)
+    hi = min(hi, full_max)
+    return lo, hi
+
+
 def plot_LC_profile(L_vals, C_vals, chi2_map, best_R_map, best_Q_map, title, outfile,
-                    omega0_ref=None, extra_text=None):
+                    omega0_ref=None, extra_text=None, manual_ranges=None,
+                    cbar_labelpad=8):
     chi2_min = float(np.nanmin(chi2_map))
     idx_min = np.unravel_index(np.nanargmin(chi2_map), chi2_map.shape)
     iC_min, iL_min = idx_min
@@ -573,92 +706,137 @@ def plot_LC_profile(L_vals, C_vals, chi2_map, best_R_map, best_Q_map, title, out
         raise RuntimeError('La mappa chi2 contiene solo valori non finiti.')
 
     X, Y, xlabel, ylabel = axes_values_for_plot(L_vals, C_vals)
-    cmap = mpl.colormaps[CMAP_NAME]
 
-    fig, ax = plt.subplots(1, 1, figsize=(7.4, 5.8), constrained_layout=True)
+    with mpl.rc_context(chi2_profile_rc):
+        cmap = mpl.colormaps['plasma'].reversed()
 
-    if COLOR_MODE == 'log_chi2':
-        positive = finite_chi2[finite_chi2 > 0.0]
-        if positive.size == 0:
-            raise RuntimeError('La mappa chi2 non contiene valori positivi per LogNorm.')
-        vmin = max(float(np.nanmin(positive)), 1.0e-12)
-        vmax = float(np.nanpercentile(positive, 99.0))
-        if vmax <= vmin:
-            vmax = float(np.nanmax(positive))
-        im = ax.pcolormesh(X, Y, chi2_map, shading='auto', cmap=cmap,
-                           norm=LogNorm(vmin=vmin, vmax=vmax))
-        cbar = fig.colorbar(im, ax=ax)
-        cbar.set_label(r'$\chi^2$ [-]')
-    elif COLOR_MODE == 'delta_chi2':
-        if DELTA_CHI2_COLOR_MAX is None:
-            zmax = float(np.nanpercentile(finite_delta, 98.0))
-            zmax = max(zmax, 10.0)
-        else:
-            zmax = float(DELTA_CHI2_COLOR_MAX)
-        levels = np.linspace(0.0, zmax, 120)
-        im = ax.contourf(X, Y, delta, levels=levels, cmap=cmap, extend='max')
-        cbar = fig.colorbar(im, ax=ax)
-        cbar.set_label(r'$\Delta\chi^2 = \chi^2 - \chi^2_{min}$ [-]')
-    else:
-        raise ValueError("COLOR_MODE deve essere 'log_chi2' oppure 'delta_chi2'.")
+        # Solo mappa centrale: sono stati rimossi i pannelli laterali/inferiori
+        # delle profilazioni, perche qui interessa visualizzare la degenerazione
+        # nel piano (L,C), non stimare graficamente le incertezze.
+        fig, ax = plt.subplots(1, 1, figsize=(6.2, 5.0), constrained_layout=True)
+        ax.set_title(title, pad=TITLE_PAD)
 
-    # Contorni in Delta chi2: utili anche se la scala colore e' log(chi2).
-    usable_contours = [lv for lv in CONTOUR_LEVELS_DELTA if lv < np.nanmax(finite_delta)]
-    if usable_contours:
-        cs = ax.contour(X, Y, delta, levels=usable_contours, colors='k',
-                        linewidths=0.9, linestyles='dotted')
-        ax.clabel(cs, fmt='%.2g', fontsize=FONT_SIZE - 2)
-
-    ax.plot(L_min if PLOT_UNITS == 'SI' else L_min * 1.0e3,
-            C_min if PLOT_UNITS == 'SI' else C_min * 1.0e9,
-            marker='x', ms=9, mew=2.0, color='black', label='Minimo profilo')
-
-    # Linee verticali/orizzontali al minimo, simili all'esempio.
-    x_min_plot = L_min if PLOT_UNITS == 'SI' else L_min * 1.0e3
-    y_min_plot = C_min if PLOT_UNITS == 'SI' else C_min * 1.0e9
-    ax.axvline(x_min_plot, color='k', lw=1.0, ls='--', alpha=0.75)
-    ax.axhline(y_min_plot, color='k', lw=1.0, ls='--', alpha=0.75)
-
-    if SHOW_LC_CONSTANT_LINE:
-        omega_line = omega0_min if omega0_ref is None else omega0_ref
-        L_line = np.linspace(L_vals.min(), L_vals.max(), 600)
-        C_line = 1.0 / (omega_line ** 2 * L_line)
-        mask_line = (C_line >= C_vals.min()) & (C_line <= C_vals.max())
-        if np.any(mask_line):
-            if PLOT_UNITS == 'SI':
-                ax.plot(L_line[mask_line], C_line[mask_line], color='white',
-                        lw=1.5, ls='-', alpha=0.95, label=r'$LC=1/\omega_0^2$')
+        if COLOR_MODE == 'log_chi2':
+            positive = finite_chi2[finite_chi2 > 0.0]
+            if positive.size == 0:
+                raise RuntimeError('La mappa chi2 non contiene valori positivi per LogNorm.')
+            vmin = max(float(np.nanmin(positive)), 1.0e-12)
+            vmax = float(np.nanpercentile(positive, 99.0))
+            if vmax <= vmin:
+                vmax = float(np.nanmax(positive))
+            im = ax.pcolormesh(
+                X, Y, chi2_map,
+                shading='auto',
+                cmap=cmap,
+                norm=LogNorm(vmin=vmin, vmax=vmax),
+            )
+            cbar = fig.colorbar(im, extend='both', shrink=0.9, ax=ax)
+            cbar.set_label(r'$\chi^2$', rotation=360, labelpad=cbar_labelpad)
+        elif COLOR_MODE == 'delta_chi2':
+            if DELTA_CHI2_COLOR_MAX is None:
+                zmax = float(np.nanpercentile(finite_delta, 98.0))
+                zmax = max(zmax, 10.0)
             else:
-                ax.plot(L_line[mask_line] * 1.0e3, C_line[mask_line] * 1.0e9,
-                        color='white', lw=1.5, ls='-', alpha=0.95,
-                        label=r'$LC=1/\omega_0^2$')
+                zmax = float(DELTA_CHI2_COLOR_MAX)
+            levels = np.linspace(0.0, zmax, 100)
+            im = ax.contourf(X, Y, delta, levels=levels, cmap=cmap, extend='max')
+            cbar = fig.colorbar(im, extend='both', shrink=0.9, ax=ax)
+            cbar.set_label(r'$\Delta\chi^2$', rotation=360, labelpad=cbar_labelpad)
+        else:
+            raise ValueError("COLOR_MODE deve essere 'log_chi2' oppure 'delta_chi2'.")
 
-    if LC_GRID_SCALE == 'log':
-        ax.set_xscale('log')
-        ax.set_yscale('log')
+        # Contorni in delta chi2, mantenuti dal codice originale con stile puntinato.
+        usable_contours = [lv for lv in CONTOUR_LEVELS_DELTA if lv < np.nanmax(finite_delta)]
+        if usable_contours:
+            cs = ax.contour(
+                X,
+                Y,
+                delta,
+                levels=usable_contours,
+                linewidths=1,
+                colors='k',
+                alpha=0.5,
+                linestyles='dotted',
+            )
+            ax.clabel(cs, inline=True, fontsize=9, fmt='%.2g')
 
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_title(title)
-    ax.legend(loc='best')
+        x_min_plot = L_min if PLOT_UNITS == 'SI' else L_min * 1.0e3
+        y_min_plot = C_min if PLOT_UNITS == 'SI' else C_min * 1.0e9
+        ax.plot(
+            x_min_plot,
+            y_min_plot,
+            marker='x',
+            ms=7,
+            mew=1.5,
+            color='black',
+            label='Minimo profilo',
+        )
 
-    text = (
-        rf'$\chi^2_{{min}}={chi2_min:.3g}$' + '\n' +
-        rf'$L_{{min}}={L_min:.4g}\,\mathrm{{H}}$' + '\n' +
-        rf'$C_{{min}}={C_min:.4g}\,\mathrm{{F}}$' + '\n' +
-        rf'$f_0={f0_min_khz:.4g}\,\mathrm{{kHz}}$' + '\n' +
-        rf'$R_{{prof}}={R_min:.4g}\,\Omega$' + '\n' +
-        rf'$Q={Q_min:.4g}$'
-    )
-    if extra_text:
-        text += '\n' + extra_text
+        # Rette tratteggiate passanti per il minimo della mappa.
+        ax.axvline(x_min_plot, color='k', lw=1.0, ls='--', alpha=0.75)
+        ax.axhline(y_min_plot, color='k', lw=1.0, ls='--', alpha=0.75)
 
-    ax.text(0.03, 0.97, text, transform=ax.transAxes, va='top', ha='left',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.86, edgecolor='0.5'),
-            fontsize=FONT_SIZE - 1)
+        # Rette tratteggiate dei valori stimati a priori di L e C.
+        if SHOW_PRIOR_LINES:
+            x_prior_plot = L_PRIOR_H if PLOT_UNITS == 'SI' else L_PRIOR_H * 1.0e3
+            y_prior_plot = C_PRIOR_F if PLOT_UNITS == 'SI' else C_PRIOR_F * 1.0e9
+            ax.axvline(
+                x_prior_plot,
+                color=PRIOR_LINE_COLOR,
+                lw=PRIOR_LINE_WIDTH,
+                ls='--',
+                alpha=0.95,
+                label=r'Stime a priori $L,C$',
+            )
+            ax.axhline(
+                y_prior_plot,
+                color=PRIOR_LINE_COLOR,
+                lw=PRIOR_LINE_WIDTH,
+                ls='--',
+                alpha=0.95,
+                label='_nolegend_',
+            )
 
-    fig.savefig(outfile, dpi=170, bbox_inches='tight', facecolor='white')
-    plt.close(fig)
+        if SHOW_LC_CONSTANT_LINE:
+            omega_line = omega0_min if omega0_ref is None else omega0_ref
+            L_line = np.linspace(L_vals.min(), L_vals.max(), 600)
+            C_line = 1.0 / (omega_line ** 2 * L_line)
+            mask_line = (C_line >= C_vals.min()) & (C_line <= C_vals.max())
+            if np.any(mask_line):
+                if PLOT_UNITS == 'SI':
+                    ax.plot(L_line[mask_line], C_line[mask_line], color='white',
+                            lw=1.2, ls='-', alpha=0.95,
+                            label='_nolegend_')
+                else:
+                    ax.plot(L_line[mask_line] * 1.0e3,
+                            C_line[mask_line] * 1.0e9,
+                            color='white', lw=1.2, ls='-', alpha=0.95,
+                            label='_nolegend_')
+
+        if LC_GRID_SCALE == 'log':
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+
+        if manual_ranges is None:
+            manual_ranges = (None, None, None, None)
+        xlim = axis_limits_around_min(
+            X, x_min_plot, manual_ranges[0], manual_ranges[1]
+        )
+        ylim = axis_limits_around_min(
+            Y, y_min_plot, manual_ranges[2], manual_ranges[3]
+        )
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+
+        ax.legend(loc='best')
+
+        add_fontsize_to_figure(fig, GRAPH_FONT_PLUS)
+
+        # Visualizza soltanto: niente salvataggio su file.
+        plt.show()
 
     return {
         'chi2_min': chi2_min,
@@ -753,10 +931,12 @@ def main():
 
     res_mod = plot_LC_profile(
         L_vals_m, C_vals_m, chi2_map_mod, R_map_mod, Q_map_mod,
-        title=r'$\chi^2$ vs $(L,C)$ R resonance',
+        title=r'$\chi^2$ vs $(L,C) - T_R(\omega)$',
         outfile=OUT_MODULI_MAP,
         omega0_ref=omega0_mod_best,
         extra_text=extra_mod,
+        manual_ranges=(MOD_MAP_XMIN, MOD_MAP_XMAX, MOD_MAP_YMIN, MOD_MAP_YMAX),
+        cbar_labelpad=MOD_CBAR_LABELPAD,
     )
 
     print('\nMinimo mappa moduli:')
@@ -764,7 +944,7 @@ def main():
     print(f"L = {res_mod['L_min_H']:.6g} H, C = {res_mod['C_min_F']:.6g} F")
     print(f"R = {res_mod['R_min_ohm']:.6g} ohm, Q = {res_mod['Q_min']:.6g}")
     print(f"f0 = {res_mod['f0_min_kHz']:.6g} kHz")
-    print(f'Grafico salvato in: {OUT_MODULI_MAP}')
+    print('Grafico moduli visualizzato a schermo')
 
     # ----------------------------
     # Mappa L-C per la fase, profilando su R
@@ -792,10 +972,12 @@ def main():
 
     res_phase = plot_LC_profile(
         L_vals_p, C_vals_p, chi2_map_phase, R_map_phase, Q_map_phase,
-        title=r'$\chi^2$ vs $(L,C)$ R phase',
+        title=r'$\chi^2$ vs $(L,C) - \Delta \phi$',
         outfile=OUT_PHASE_MAP,
         omega0_ref=omega0_phase_best,
         extra_text=extra_phase,
+        manual_ranges=(PHASE_MAP_XMIN, PHASE_MAP_XMAX, PHASE_MAP_YMIN, PHASE_MAP_YMAX),
+        cbar_labelpad=PHASE_CBAR_LABELPAD,
     )
 
     print('\nMinimo mappa fase:')
@@ -803,7 +985,7 @@ def main():
     print(f"L = {res_phase['L_min_H']:.6g} H, C = {res_phase['C_min_F']:.6g} F")
     print(f"R = {res_phase['R_min_ohm']:.6g} ohm, Q = {res_phase['Q_min']:.6g}")
     print(f"f0 = {res_phase['f0_min_kHz']:.6g} kHz")
-    print(f'Grafico salvato in: {OUT_PHASE_MAP}')
+    print('Grafico fase visualizzato a schermo')
 
     print(f'\nTempo totale: {time.time() - t_start:.2f} s')
 

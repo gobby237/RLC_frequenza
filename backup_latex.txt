@@ -1,0 +1,823 @@
+\documentclass[a4paper,12pt]{article}
+
+% Pacchetti utili
+\usepackage{tikz}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{makecell}  
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage[parfill]{parskip}
+\usepackage{siunitx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{comment}
+\usepackage[table]{xcolor}
+\usepackage{pgfplots}
+\usepackage{circuitikz}
+\pgfplotsset{compat=1.18}
+\usepackage{verbatim}
+\usepackage{multicol}
+\usepackage{tabularx}
+\usepackage{rotating}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+% Simbolo collegamento oscilloscopio: cerchio + quadrato interno
+\newcommand{\oscprobe}[2]{%
+    \begin{scope}[shift={(#1,#2)}]
+        \draw (0,0) circle (0.28);
+        \draw (-0.13,-0.13) rectangle (0.13,0.13);
+    \end{scope}
+}
+
+% Impostazioni di margine e intestazioni
+\geometry{a4paper, margin=1.3cm, tmargin=1.3cm}
+
+
+% Titolo e autori
+\title{ \textbf{Relazione circuito RLC in frequenza }}
+
+\author{Giacomo Caneva, Thomas Gozzi, Antonio Gobbato}
+\date{13 Maggio 2026}
+
+\begin{document}
+\maketitle
+
+
+\vspace{-1cm}
+\noindent\rule{\textwidth}{0.5pt}
+
+\section{Obiettivo}
+Stima dei parametri per la descrizione di un circuito RLC, in configurazione passa banda: 
+$f_0$ (frequenza di risonanza), $\Delta f$ (larghezza di banda), $Q = \dfrac{f_0}{\Delta f}$ (fattore di merito).
+
+
+\section{Apparato sperimentale}
+
+Di seguito si propone uno schema del circuito RLC realizzato in laboratorio. $R, L$ e $C$ sono le componenti saldate nella breadboard, con $R_L$ la resistenza associata all'induttore, mentre $R_G$ è la resistenza del generatore e $R_0$ la resistenza interna dell'oscilloscopio. $C_C$ è la capacità dei cavi coassiali e $C_O$ la capacità dell'oscilloscopio. L'esperienza è stata realizzata solo ai capi di R. 
+
+\begin{figure}[htbp]
+\centering
+
+\resizebox{\textwidth}{!}{%
+\begin{circuitikz}[scale=0.95, transform shape]
+
+% ============================================================
+% Riquadri tratteggiati
+% ============================================================
+\draw[dashed] (-0.6,-0.55) rectangle (1.65,3.25);
+\draw[dashed] (4.5,-0.55) rectangle (8.7,3.25);
+\draw[dashed] (10.1,-0.55) rectangle (13.6,3.25);
+
+\node at (0.6,-0.95) {Generatore};
+\node at (6.9,-0.95) {Circuito};
+\node at (11.85,-0.95) {Oscilloscopio};
+
+% ============================================================
+% Linea inferiore comune
+% ============================================================
+\draw (0,0) -- (13.2,0);
+
+% ============================================================
+% Generatore con resistenza interna
+% ============================================================
+\draw (0,0) to[sV] (0,2.2);
+\draw (0,2.2) to[R,l=$R_G$] (1.55,2.2);
+
+% ============================================================
+% Cavo prima del circuito
+% ============================================================
+\draw (1.55,2.2) -- (4.5,2.2);
+
+\draw (2.3,2.2) to[C] (2.3,0);
+\node[right] at (1.6,0.67) {$C_c$};
+
+\draw (3.15,2.2) -- (3.15,1.38);
+\oscprobe{3.15}{1.1}
+\draw (3.15,0.82) -- (3.15,0);
+
+\node[above, text=yellow!70!orange] at (3.15,2.55) {\textbf{CH1}};
+
+\draw (4.05,2.2) to[C] (4.05,0);
+\node[right] at (3.3,0.67) {$C_c$};
+
+% ============================================================
+% Circuito RLC, riquadro allargato
+% ============================================================
+\draw (4.5,2.2)
+    to[C,l=$C$] (6,2.2)
+    to[R,l=$R_L$] (7.2,2.2)
+    to[L,l=$L$] (8.3,2.2)
+    -- (9.3,2.2);
+
+% Resistenza del circuito con etichetta a sinistra
+\draw (8.35,2.2) to[R] (8.35,0);
+\node[left] at (8.15,1.1) {$R$};
+
+% ============================================================
+% Cavo dopo il circuito
+% ============================================================
+\draw (9.3,2.2) -- (10.1,2.2);
+
+\draw (9.4,2.2) to[C] (9.4,0);
+\node[left] at (9.45,0.67) {$C_c$};
+
+% ============================================================
+% Oscilloscopio
+% ============================================================
+\draw (10.1,2.2) -- (12.75,2.2);
+
+\draw (10.65,2.2) to[C] (10.65,0);
+\node[right] at (10.73,0.67) {$C_o$};
+
+\draw (11.65,2.2) to[R] (11.65,0);
+\node[right] at (11.82,0.67) {$R_o$};
+
+\draw (12.75,2.2) -- (12.75,1.38);
+\oscprobe{12.75}{1.1}
+\draw (12.75,0.82) -- (12.75,0);
+
+\node[above, text=blue] at (12.75,2.55) {\textbf{CH2}};
+
+% ============================================================
+% Massa a destra
+% ============================================================
+\draw (13.2,0) -- (13.2,-0.25);
+\draw (12.95,-0.25) -- (13.45,-0.25);
+\draw (13.03,-0.36) -- (13.37,-0.36);
+\draw (13.11,-0.47) -- (13.29,-0.47);
+
+\end{circuitikz}
+}
+
+\caption{Schema circuitale}
+\label{fig:schema_circuitale}
+
+\end{figure}
+
+\begin{comment}
+Qua va messa tutta la spiegazione del setup, come erao messi i cavi e le due sonde, entrambe calibrate per il rispettivo canale. E le impostazioni dell'oscilloscopio (x10 per le sonde, funzioni medie 16 etc.). Si potrebbe mettere qui tipo una subsection con tipo "impostazioni oscilloscopio" e "setup sperimentale". come vengono calibrate le sonde
+\end{comment}
+
+
+\begin{comment}
+Si costruisce su una basetta millefori il circuito RLC mostrato in Figura 1, saldandone gli estremi delle tre componenti adiacenti. Si scelgono le componenti dei seguenti valori in modo tale da alzare quanto più possibile il fattore di merito $Q$ e abbassare la frequenza di risonanza $f_0$ teorica per garantire la condizione che $f_0 \ll 1 \, \,$ GHz, limite reale di funzionamento dell'oscilloscopio Tektronix AFG 1022 utilizzato. 
+Si usano quindi una resistenza $R=(10.08\pm0.06)\Omega$, capacità $C=(5.19\pm0.02)$nF e induttanza $L=(286\pm26)\mu H$ con resistenza della stessa $R_L=(9.15\pm0.06)\Omega$, dove le incertezze si sono ottenute dalle misure con multimetro METRIX. 
+
+Si saldano inoltre ponticelli in ciascuno dei nodi del quadrupolo per prelevare o inserire il segnale. 
+Il segnale in ingresso si è immesso nel circuito tramite un cavo BNC banana connesso con l'estremo libero di L e a massa, con il generatore di funzioni TBS 1102B EDU. Su quest'ultimo si imposta un'onda sinusoidale centrata sullo zero di tensione con valore di tensione picco-picco pari a 11,1 V in modo tale da riempire tramite il segnale in entrata all'oscilloscopio l'intero schermo di visualizzazione delle onde, assicurando una migliore accuratezza nella lettura. 
+
+Per poter acquisire il segnale in output è necessario compensare due sonde di tipo 10x, una per rispettivo canale di ingresso, CH1 e CH2 dell'oscilloscopio già citato. Questo passaggio è essenziale per la visualizzazione accurata del segnale: calibrando le due sonde tramite una vita che avvicina e allontana le piastre di un condensatore interno si aumenta la resistenza totale che si somma a quella dell'oscilloscopio e diminuendo la capacità totale, rendendo "invisibili" le componenti parassite dell'oscilloscopio sul quadrupolo in esame. Essendo le sonde attenuanti di un fattore 10, si imposta sull'oscilloscopio la visualizzazione 10x, riportando le grandezze visualizzate a quelle reali. Si imposta anche una funzione Medie, mediando su 16 periodi, in modo da attenuare il rumore casuale sul segnale visualizzato. 
+
+Si sono quindi collegate le due sonde compensate tramite i pincer sia "a vuoto" cioé prima dell'ingresso nel circuito e nel nodo tra R e C. Le pinze a coccodrillo si sono collegate entrambe a massa del circuito. 
+Il segnale di tensione a vuoto, visualizzato sul canale CH1 dell'oscilloscopio è meno sensibile a variazioni della frequenza, caratteristica che viene sfruttata per impostare il trigger dove la pendenza è massima, per valori di tensione prossimi allo 0. 
+
+Il segnale ai capi di R viene visualizzato sul canale CH2 dell'oscilloscopio e confrontato con quello a vuoto, sia per quanto riguarda la tensione che per lo sfasamento reciproco. 
+\end{comment}
+
+\paragraph*{\large Realizzazione del circuito} \mbox{} \vspace{0.2cm}\\ 
+Si è proceduto alla realizzazione del circuito RLC serie mostrato in Figura 1 utilizzando una basetta millefori, saldando in serie i terminali dei tre componenti. I valori nominali sono stati scelti con l'obiettivo di massimizzare il fattore di merito $Q$ e di mantenere la frequenza di risonanza teorica $f_0$ ben al di sotto del limite di banda degli strumenti di misura utilizzati ($\ll$ 30 MHz). 
+Per facilitare l'immissione e l'acquisizione dei segnali, sono stati saldati dei ponticelli rigidi in corrispondenza dei nodi principali del quadrupolo. 
+
+
+
+\paragraph*{\large Generazione del segnale} \mbox{} \vspace{0.2cm} \\
+Il segnale di imput è stato fornito tramite il generatore di funzioni Tektronix AFG 1022. L'uscita del generatore è stata collegata all'ingresso del circuito (terminale libero dell'induttanza L) e alla massa comune tramite un cavo coassiale BNC-banana. Sul generatore è stata impostata un'onda sinusoidale con offset nullo (centrata sullo zero) e un'ampiezza picco-picco di 11.1 V. Questa ampiezza è stata scelta per garantire una visualizzazione sull'interezza dello schermo dell'oscilloscopio, minimizzando l'errore di discretizzazione del segnale, garantendo quindi una migliore accuratezza nella lettura delle tensioni.
+
+\paragraph*{\large Acquisizione del segnale } \mbox{} \vspace{0.2cm} \\
+Per l'acquisizione dei segnali si è collegato l'oscilloscopio digitale Tektronix TBS 1102B EDU al circuito grazie a due sonde passive attenuanti (di fattore 10x), collegate rispettivamente ai canali CH1 e CH2. 
+Prima di procedere alle misure, è stato necessario calibrare le sonde: agendo con l'apposita vite, si è bilanciato il partitore di tensione capacitivo formato dalla sonda stessa e dalle capacità parassite dei cavi ($C_c$) e dell'ingresso dell'oscilloscopio ($C_o$, come schematizzato in Figura 1). Questa operazione, effettuata per ciascuna sonda sul relativo canale di azione, limita distorsioni del segnale ad alte frequenze. 
+
+\begin{comment}
+\paragraph*{\large Collegamenti e Acquisizione} \mbox{} \vspace{0.2cm} \\
+\end{comment}
+Tramite i terminali a uncino (pincer) delle sonde, il canale CH1 è stato collegato al nodo di ingresso del circuito (per misurare il segnale $V_{in}$ erogato dal generatore), mentre il canale CH2 è stato collegato al nodo tra l'induttanza L e la resistenza R (per misurare la caduta di potenziale $V_R$ ai capi del resistore). Le pinze a coccodrillo di entrambe le sonde sono state collegate al riferimento di massa comune. Il segnale in ingresso ($V_{in}$) sul CH1 è poco sensibile alle variazioni di frequenza: per questo motivo è stato scelto come sorgente per il Trigger. 
+
+Il livello di trigger è stato impostato vicino allo zero (punto di massima pendenza della sinusoide) per massimizzarne la stabilità. Infine, il segnale in uscita acquisito sul canale CH2 è stato confrontato con l'ingresso sul canale CH1 al variare della frequenza, permettendo di estrarre punto per punto i valori della funzione di trasferimento (rapporto delle ampiezze) e lo sfasamento reciproco $\Delta\phi$.
+
+\paragraph*{\large Impostazioni dell'oscilloscopio } \mbox{}\vspace{0.2cm} \\
+Per la corretta visualizzazione del segnale, si è visualizzato in amplificazione 10x, per contrastare l'attenuazione apportata dalle sonde. Inoltre, per ridurre l'impatto del rumore casuale, si è utilizzata la funzione di acquisizione Media, applicata su 16 periodi. 
+
+
+
+\section{Presentazione dati e metodo}
+
+Prima di passare all'acquisizione dei dati si imposta il trigger dell'oscilloscopio sul $\textit{CH1}$ dell'oscilloscopio (corrispondente alla tensione in entrata nel circuito $V_{in}$), decrescente e in corrispondenza del punto della curva con massima pendenza, ovvero quello con ordinata nulla. I dati successivamente acquisiti sono di due tipi.  
+\begin{itemize}
+    \item \textbf{Tensioni}: Al fine di minimizzare l’incertezza nella lettura delle ampiezze, la tensione di uscita del generatore è stata fissata a circa \SI{11.1}{\V} picco‑picco, in modo che la forma d’onda di $V_{\text{in}}$ occupasse la maggior parte dell’asse verticale del display dell'oscilloscopio. \\
+    L’acquisizione delle ampiezze è stata effettuata tramite la
+    funzione automatica di misura picco‑picco, che calcola la
+    differenza tra il massimo e il minimo del segnale all’interno
+    della finestra temporale visualizzata. Per migliorare la precisione
+    di questa stima, la scala dei tempi è stata scelta in modo da
+    includere sempre un numero sufficiente di periodi completi
+    (da 5 a 10 oscillazioni) sullo schermo.
+    \item \textbf{Tempi}: Per misurare l'intervallo temporale tra gli zeri di $V_{in}$ e $V_{out}$, sono state utilizzate le misure manuali tramite i cursori verticali dell'oscilloscopio. Per ogni frequenza, agendo sui controlli orizzontali e verticali, il segnale $V_{in}$ è stato posizionato in modo che il suo attraversamento dello zero coincidesse con uno dei due cursori temporali. In questo modo, nella misura di $\Delta t$, il riferimento temporale associato a $V_{in}$ risultava sempre nullo. \\
+    Il secondo cursore è stato invece spostato manualmente fino a farlo coincidere con l'attraversamento dello zero del segnale $V_{out}$. Al variare della frequenza, questa procedura è stata ripetuta punto per punto. Le scale verticali dei due canali sono state variate quando necessario, in modo da visualizzare con maggiore precisione la regione in cui le due curve attraversano lo zero. Analogamente, la scala dei tempi è stata scelta in modo da sfruttare il più possibile l'estensione orizzontale del display dell'oscilloscopio, così da migliorare la risoluzione nella lettura temporale.\\
+    In particolare, nelle vicinanze della frequenza di risonanza $f_0$, dove lo sfasamento è piccolo e l'individuazione dello zero risulta meno netta, si è scelto come valore misurato il punto medio dell'intervallo entro cui la condizione di attraversamento dello zero poteva essere considerata compatibile con l'osservazione.
+\end{itemize}
+
+I dati così ottenuti sono stati riportati nel file Excel indicato a piè di pagina\footnote{https://shorturl.at/U7jYd}. 
+Tutte le grandezze misurate sono state riportate in funzione della frequenza impostata in uscita dal generatore, considerata priva di incertezza. 
+Con i metodi descritti in precedenza sono state sondate sia le curve degli sfasamenti sia quelle dei moduli delle funzioni di trasferimento; inoltre, nelle regioni in prossimità della frequenza di risonanza e delle frequenze di taglio, il campionamento è stato reso più fitto, così da poter eseguire con maggiore accuratezza l'analisi dati presentata di seguito.
+
+\begin{figure} [H]
+\begin{minipage}{0.51\linewidth}
+    \centering
+    \vspace{0.45cm}
+    \includegraphics[width=\linewidth]{DatiGrezzi_tempo.pdf}
+    \caption{Dati grezzi degli sfasamenti temporali tra $V_{in}$ e $V_{out}$}
+    \label{fig:chi2LC_sfasamento}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{DatiGrezzi_tensioni.pdf}
+    \caption{Dati grezzi $V_{in}$ e $V_{out}$}
+    \label{fig:chi2LC_modulo}
+\end{minipage}
+
+\end{figure}
+
+
+
+\begin{comment}
+Qui si mette come si sono raccolti i dati delle ampiezze e degli sfasamenti, con tutti i dati in appendice e dei grafici che mostrano SOLO i dati grezzi.
+\end{comment}
+
+\begin{comment}
+I dati raccolti spaziano in un ampio range di frequenze (da a ) e sono di due tipi: i moduli delle funzioni di trasferimento e gli sfasamenti. Per i primi si sono utilizzate due sonde e le misure automatiche ... Mentre per gli sfasamenti si è calcolato l'intervallo di tempo che intercorre tra ...
+\end{comment}
+
+\section{Analisi dati}
+
+Durante l'intera analisi dati, le incertezze associate al modulo della funzione di trasferimento e allo sfasamento sono state calcolate come
+$$
+\sigma_{T_R} =
+T_R \cdot\sqrt{
+\left(\frac{0.04\,\mathrm{V/div}}{V_{in}}\right)^2
++
+\left(\frac{0.04\,\mathrm{V/div}}{V_{out}}\right)^2
++
+2\left(\frac{\sigma_k}{k}\right)^2
+}
+\qquad
+\sigma_{\Delta\phi}
+=
+2\pi f\,\sigma_{\Delta t}
+=
+2\pi f\,\sqrt{2}\,\cdot 0.04\,\mathrm{s/div}.
+$$
+Nel calcolo delle incertezze di lettura si è assunta una distribuzione triangolare, in modo da convertire l'errore massimo in una deviazione standard. Nell'incertezza su $T_R(\omega)$ è stato inoltre incluso un contributo di calibrazione della scala verticale pari a $\sigma_k/k = 0.012$ avendo sempre preso le misurazioni con due sonde diverse per $V_{in}$ e $V_{out}$. 
+
+
+\subsection{Stime a priori}
+
+Si misurano con un multimetro METRIX le componenti del circuito C e R: capacità $C_{priori} = (5.19 \pm 0.02) \text{ nF}$, resistenza aggiuntiva $R_{priori} = (10.08 \pm 0.06) \, \Omega$ e la resistenza parassita dell'induttore $R_L = (9.15 \pm 0.06) \, \Omega$. 
+Le incertezze riportate si sono ottenute riducendo a deviazione standard gli errori massimi forniti dal costruttore. 
+La stima dell'induttanza fa eccezione, essendo stata stimata misurando i singoli parametri che compongono il componente e ottenendo valore e incertezza tramite la formula di Lundin e la propagazione degli errori sulla stessa: $L = (286 \pm 26) \, \mu\text{H}$.
+
+A partire da questi valori si può stimare la frequenza di risonanza prevista utilizzando la formula 9 in Appendice: 
+
+$$f_{0,priori}=(131 \, \pm \, 6)\, \text{KHz}$$
+
+Facendo affidamento alle formule 13 e 14 in Appendice si può stimare, conoscendo i parametri del circuito, anche la larghezza di banda $\Delta f$ e il fattore di merito $Q$ e si ottengono i seguenti valori, considerando $R=R_{priori}+R_L=(19.23\pm0.09)\Omega$ e propagando gli errori: 
+
+$$\Delta f_{priori}=(10.7\pm1.0)\text{KHz}$$
+$$Q_{priori}=(12.2\pm0.6)$$
+
+\subsection{Stime puntuali}
+
+
+\begin{comment}
+Si cercano, in un intervallo della $f_{0,priori}$, gli intervalli di frequenze in cui vengono verificate le condizioni di valore massimo di $|A|=\frac{V_{out}}{V_{in}}$ e sfasamento $\Delta \phi=0$. Si prende la media tra gli estremi degli intervalli e si associa incertezza come semidispersione di tale range. Si utilizzano gli intervalli $\Delta |A|_{max}=[129.5-131]\text{Hz}$ e $\Delta \phi_{0}=[129.82-130.92]\text{Hz}$ ottenendo rispettivamente $f_{0,|A|}=(130.25\pm0.75)\text{Hz}$ e $f_{0,\Delta \phi}=(130.37\pm0.55)\text{Hz}$.
+
+
+Valutando sperimentalmente gli intervalli di frequenze $\Delta f_1$ e $\Delta f_2$, simmetriche rispetto a $f_0$, le cui funzioni di trasferimento $|A|$ fossero pari a $\frac{|A|_{max}}{\sqrt{2}}$. Si ottengono quindi i valori dei limiti di banda $f_1$ e $f_2$ come le medie dei relativi intervalli, prendendo come errore massimo la loro semidispersione. Si possono inoltre calcolare in questo modo la larghezza di banda $\Delta f=|f_1-f_2|$ e il fattore di merito tramite la formula 14 in Appendice. 
+
+Si ottengono così le seguenti stime ecc.
+\end{comment}
+
+Le grandezze caratteristiche del circuito, ovvero le frequenze di taglio $f_1$ e $f_2$, la larghezza di banda $\Delta f$, la frequenza di risonanza $f_0$ e il fattore di merito $Q$, si sono determinate puntualmente, sia tramite l'analisi della funzione di trasferimento $T_R$, sia misurando gli sfasamenti $\Delta \phi$.
+
+Il primo metodo si basa sull'attenuazione dell'ampiezza del segnale rispetto al suo picco. Nello specifico, sono stati valutati sperimentalmente gli intervalli di frequenza $\Delta f_1$ e $\Delta f_2$, disposti simmetricamente rispetto alla risonanza, all'interno dei quali il modulo della funzione di trasferimento $T_R$ soddisfa la condizione:
+\begin{equation}
+    T_R = \frac{T_{R,max}}{\sqrt{2}}
+\end{equation}
+
+Le frequenze di taglio $f_1$ e $f_2$ sono state stimate come il valore centrale dei rispettivi intervalli, associando come incertezza massima la loro semidispersione.
+
+Il secondo metodo sfrutta la relazione per cui, in corrispondenza delle frequenze di taglio, lo sfasamento $\phi$ tra i segnali assume valori teorici pari a $\pm 45^\circ$. Per determinare queste frequenze, si sono considerati i piccoli intervalli delimitati dagli sfasamenti misurati a $\pm 44^\circ$ e $\pm 46^\circ$. Analogamente al metodo precedente, i valori di $f_1$ e $f_2$ sono stati ricavati prendendo il valore centrale di ciascun intervallo, assumendo la relativa semidispersione come incertezza. Tali errori sperimentali si propagano di conseguenza nel calcolo delle grandezze derivate, come la frequenza di risonanza $f_0$ e il fattore di merito $Q$.
+
+Una volta ottenute $f_1$ e $f_2$ con entrambi i metodi, le restanti grandezze sono state calcolate tramite le relazioni:
+\begin{itemize}
+    \item Larghezza di banda: $\Delta f = f_2 - f_1$
+    \item Frequenza di risonanza: $f_0 = \sqrt{f_1 \cdot f_2}$
+    \item Fattore di merito: $Q = \frac{f_0}{\Delta f}$
+\end{itemize}
+
+I risultati ottenuti sono riassunti nella seguente tabella comparativa:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Grandezza} & \textbf{Metodo Ampiezze} & \textbf{Metodo Sfasamenti} \\ \hline
+$f_1$ [KHz]         & $124.2 \pm 100$            & $123.95 \pm 0.04$              \\ \hline
+$f_2$ [KHz]         & $136.6 \pm 100$            & $136.48 \pm 0.04$              \\ \hline
+$\Delta f$ [KHz]    & $12.4 \pm 0.1$            & $12.53 \pm 0.05$              \\ \hline
+$f_0$ [KHz]         & $130.25 \pm 0.07$            & $130.06 \pm 0.03$              \\ \hline
+$Q$                & $10.5 \pm 0.1$            & $10.38 \pm 0.04$              \\ \hline
+\end{tabular}
+\caption{Confronto dei parametri del circuito ricavati dai due metodi sperimentali.}
+\label{tab:confronto_metodi}
+\end{table}
+
+
+\subsection{Stima resistenza totale del circuito}
+A partire dalla stima a priori della frequenza di risonanza $f_{0,\text{priori}}$, si misura la tensione in ingresso al circuito in corrispondenza di tale frequenza, $V_{in}(f_{0,\text{priori}}) = (3.52 \pm 0.01)\,\mathrm{V}$, e la tensione a vuoto del generatore, $V_{in,0} = (11.1 \pm 0.02)\,\mathrm{V}$. Utilizzando inoltre la resistenza interna del generatore, già determinata in una precedente esperienza, $R_G = (49.4 \pm 1.1)\,\Omega$, si stima la resistenza totale del circuito tramite la relazione
+$$R_T = R_G \frac{V_{in,0}}{V_{in,0} - V_{in}(f_{0,\text{priori}})} \qquad R_T = (72 \,  \pm \,  2)\,\Omega.$$
+
+Confrontando il valore ottenuto con la stima a priori $R_{T,\text{priori}} = R + R_L + R_G = (68.8 \pm 1.1)\,\Omega$, si osserva che la resistenza totale stimata risulta leggermente maggiore. Tale differenza può essere attribuita al fatto che la misura include anche contributi resistivi non considerati nella stima a priori, come le resistenze dei fili, dei contatti e delle connessioni del circuito. 
+
+\subsection{Fit lineare}
+Si procede con il metodo del fit lineare per la determinazione della larghezza di banda $\Delta f=f_2-f_1$ e quindi della frequenza di risonanza $f_0$ del sistema utilizzato. Un vantaggio di prendere le misure ai capi di R è che il grafico delle ampiezze e della fase presentano rispettivamente una simmetria e un'antisimmetria geometrica, avendo infatti $f_1$ e $f_2$ è possibile utilizzare la semplice relazione $f_0=\sqrt{f_1 f_2}$.
+
+Per trovare $f_1$ e $f_2$ si sono cercate le frequenze alle quali per le ampiezze, la funzione di trasferimento, $|A|=\frac{V_{out}}{V_{in}}$, approssimava il valore teorico di $\frac{T_{R,max}}{\sqrt{2}}$, mentre per la fase, $\Delta\phi\approx\pm45^\circ$ e si è infittita la presa dati nei loro intorni. Ci si serve dei fit lineari per avere una stima affidabile delle due frequenze ai limiti della banda, che altrimenti non sarebbero determinabili con precisione. Come si illustra di seguito:
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{doppio_fit_tensioni.pdf}
+        \caption{fit dell'ampiezza}
+        \label{fig:fit_ampiezze}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{doppio_fit_fase.pdf}
+        \caption{fit della fase}
+        \label{fig:fit_fase}
+    \end{subfigure}
+    \caption{fit locale sulle frequenze di banda}
+    \label{fig:interpolazione}
+\end{figure}
+
+
+
+Attraverso l'interpolazione lineare dei punti in un intorno delle due frequenze, si sono ricavati i parametri della retta $m$ e $q$. Risulta quindi immediata la stima di $f_{1,2}$, una volta fissata $y$ al valore soglia di $\frac{T_{R,max}}{\sqrt{2}}$ per le ampiezze e $\pm 45^\circ$ per la fase, usufruendo della formula inversa:
+\[
+f_{1,2}=\frac{y_{soglia}-q}{m}
+\]
+
+Di seguito si espongono grafici e parametri stimati dai fit lineari locali attorno alle frequenze di banda:
+\begin{figure}[htbp]
+    \centering
+    % ---- METÀ SINISTRA: L'IMMAGINE (allargata al 48%) ----
+    \begin{minipage}{0.64\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{fit_f1_ampiezze.pdf}
+        \caption{Grafico dell'interpolazione.}
+        \label{fig:fit_ampiezza}
+    \end{minipage}% <--- Questo percento è fondamentale per non avere spazi extra
+    \hfill % Spinge le due minipage ai bordi opposti
+    % ---- METÀ DESTRA: LA TABELLA (allargata al 48%) ----
+    \begin{minipage}{0.36\textwidth}
+        \centering
+        \begin{tabular}{|l|l|}
+            \hline
+            \textbf{Parametro} & \textbf{Valore} \\
+            \hline
+            Intervallo & $122.5 - 126.0$ kHz \\
+            Punti usati & 15 \\
+            \hline
+            Pendenza $m$ & $(2.160 \pm 0.241)\cdot 10^{-2}$ \\
+            Intercetta $q$ & $-2.384 \pm 0.298$ gradi \\
+            \hline
+            $\chi^2/\text{ndf}$ & $0.57 / 13 = 0.04$ \\
+            \hline
+            %Soglia teorica & $0.3013$ \\
+            %\hline
+            \textbf{$f_{1}$ interp.} & $\mathbf{124.28 \pm 0.11}$ \textbf{kHz} \\
+            \hline
+        \end{tabular}
+        \captionof{table}{Risultati del fit lineare locale.}
+        \label{tab:valori_fit}
+    \end{minipage}
+\end{figure}
+\vspace{0.5}
+
+
+\begin{figure}[H]
+    \centering
+    % ---- METÀ SINISTRA: L'IMMAGINE (allargata al 48%) ---
+    \begin{minipage}{0.64\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{fit_f2_ampiezze22.pdf}
+        \caption{Grafico dell'interpolazione.}
+        \label{fig:fit_ampiezza}
+    \end{minipage}% <--- Questo percento è fondamentale per non avere spazi extra
+    \hfill % Spinge le due minipage ai bordi opposti
+    % ---- METÀ DESTRA: LA TABELLA (allargata al 48%) ----
+    \begin{minipage}{0.36\textwidth}
+        \centering
+        \begin{tabular}{|l|l|}
+            \hline
+            \textbf{Parametro} & \textbf{Valore} \\
+            \hline
+            Intervallo & $134.0 - 138.0$ kHz \\
+            Punti usati & 13 \\
+            \hline
+            Pendenza $m$ & $(-2.307 \pm 0.090)\cdot 10^{-2}$ \\
+            Intercetta $q$ & $3.452 \pm 0.111$ gradi \\
+            \hline
+            $\chi^2/\text{ndf}$ & $1.77 / 11 = 0.16$ \\
+            \hline
+            %Soglia teorica & $0.3013$ \\
+            %\hline
+            \textbf{$f_{2}$ interp.} & $\mathbf{136.563 \pm 2.318}$ \textbf{kHz} \\
+            \hline
+        \end{tabular}
+        \captionof{table}{Risultati del fit lineare locale.}
+        \label{tab:valori_fit}
+    \end{minipage}
+\end{figure}
+\vspace{0.5} 
+Come incertezza da associare ai punti si utilizza la formula di propagazione dell'errore di $\sigma_{T_R}$ discussa in precedenza, ma si contano solamente i primi due termini rappresentanti l'errore di lettura, in quanto nel piccolo intorno considerato per ogni fit, si è avuto cura di non cambiare mai le sonde né la scala.
+
+Tuttavia un'errore sistematico di calibrazione è presente, in quanto si usano due sonde diverse per i due canali, che introducono un'incertezza fino a $\sigma_k=1.2\%$ su un fattore moltiplicativo $k$. Questo fattore, essendo sistematico, modifica ogni punto nella stessa direzione influenzando di fatto la pendenza della retta interpolante, la cui incertezza diventa dunque $\sigma_m=\sqrt{\sigma_{m,fit}^2+2(m\cdot\sigma_k)^2 }$ dalla formula di propagazione degli errori. 
+
+
+\begin{figure}[H]
+    \centering
+    % ---- METÀ SINISTRA: L'IMMAGINE (allargata al 48%) ---
+    \begin{minipage}{0.6\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{fit_f1_fase.pdf}
+        \caption{Grafico dell'interpolazione.}
+        \label{fig:fit_ampiezza}
+    \end{minipage}% <--- Questo percento è fondamentale per non avere spazi extra
+    \hfill % Spinge le due minipage ai bordi opposti
+    % ---- METÀ DESTRA: LA TABELLA (allargata al 48%) ----
+    \begin{minipage}{0.4\textwidth}
+        \centering
+        \begin{tabular}{|l|l|}
+            \hline
+            \textbf{Parametro} & \textbf{Valore} \\
+            \hline
+            Intervallo & $123.0 - 126.0$ kHz \\
+            Punti usati & 9 \\
+            \hline
+            Pendenza $m$ & $(5.564 \pm 0.294)\cdot 10^{-2}$ \\
+            Intercetta $q$ & $(-7.368 \pm 0.366)\cdot10^{2}$ gradi \\
+            \hline
+            $\chi^2/\text{ndf}$ & $2.29 / 7 = 0.33$ \\
+            \hline
+            %Soglia teorica & $$ \\
+            %\hline
+            \textbf{$f_{1}$ interp.} & $\mathbf{124.331 \pm 0.0406}$ \textbf{kHz} \\
+            \hline
+        \end{tabular}
+        \captionof{table}{Risultati del fit lineare locale.}
+        \label{tab:valori_fit}
+    \end{minipage}
+\end{figure}
+\vspace{0.5} 
+
+\begin{figure}[H]
+    \centering
+    % ---- METÀ SINISTRA: L'IMMAGINE (allargata al 48%) ---
+    \begin{minipage}{0.6\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{fit_f2_fase.pdf}
+        \caption{Grafico dell'interpolazione.}
+        \label{fig:fit_ampiezza}
+    \end{minipage}% <--- Questo percento è fondamentale per non avere spazi extra
+    \hfill % Spinge le due minipage ai bordi opposti
+    % ---- METÀ DESTRA: LA TABELLA (allargata al 48%) ----
+    \begin{minipage}{0.4\textwidth}
+        \centering
+        \begin{tabular}{|l|l|}
+            \hline
+            \textbf{Parametro} & \textbf{Valore} \\
+            \hline
+            Intervallo & $135.5 - 138.0$ kHz \\
+            Punti usati & 12 \\
+            \hline
+            Pendenza $m$ & $(4.644 \pm 0.359)\cdot 10^{-2}$ \\
+            Intercetta $q$ & $(-5.911 \pm 0.490)\cdot10^{2}$ gradi \\
+            \hline
+            $\chi^2/\text{ndf}$ & $7.41 / 10 = 0.74$ \\
+            \hline
+            %Soglia teorica & $0.3013$ \\
+            %\hline
+            \textbf{$f_{2}$ interp.} & $\mathbf{136.994 \pm 0.054}$ \textbf{kHz} \\
+            \hline
+        \end{tabular}
+        \captionof{table}{Risultati del fit lineare locale.}
+        \label{tab:valori_fit}
+    \end{minipage}
+\end{figure}
+
+
+\subsection{Fit non lineare}
+
+Per verificare se fosse possibile descrivere il circuito RLC serie utilizzando direttamente i parametri fisici $R$, $L$ e $C$, sono state costruite delle mappe del $\chi^2$ nel piano $(L,C)$, sia per i dati relativi al modulo della funzione di trasferimento, sia per i dati relativi alla fase: per ogni coppia fissata di valori $(L,C)$, il codice fa variare il parametro $R$ e, per il modulo, profila anche la normalizzazione $A$. In altre parole, per ogni punto del piano $(L,C)$ viene cercato il miglior valore possibile del $\chi^2$ rispetto ai parametri rimanenti.
+
+\begin{figure}[H]
+\centering
+
+\hfill
+\begin{minipage}{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{chi2_LC_modulo.png}
+    \caption{Mappa del $\chi^2$ nel piano $(L,C)$ ottenuta dai dati del modulo.}
+    \label{fig:chi2LC_modulo}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{chi2_LC_sfasamento.png}
+    \caption{Mappa del $\chi^2$ nel piano $(L,C)$ ottenuta dai dati degli sfasamenti.}
+    \label{fig:chi2LC_sfasamento}
+\end{minipage}
+
+\end{figure}
+Lo scopo di questa analisi non è quello di ottenere la stima finale dei parametri, ma di mostrare che un fit diretto in termini di $R$, $L$ e $C$ risulta poco stabile, poiché i parametri $L$ e $C$ sono fortemente anticorrelate tra loro. Come si può vedere dalle formule 9-11 in appendice, molte coppie diverse di $L$ e $C$ possono produrre valori molto
+simili della pulsazione di risonanza $\omega_0$, purché il prodotto $LC$ rimanga circa costante.  Questo genera una degenerazione nel piano $(L,C)$: invece di osservare un minimo del $\chi^2$ ben localizzato, si osserva una regione allungata, lungo la quale il valore del $\chi^2$ varia lentamente. \\
+Questa struttura indica che i dati sperimentali vincolano meglio la
+combinazione $LC$, e quindi $\omega_0$, piuttosto che i singoli valori di $L$ e $C$ separatamente. \\
+Questo comportamento è confermato anche dai valori corrispondenti al minimo numerico della mappa. Infatti, i valori di best fit ottenuti direttamente nel piano $(L,C)$ dalla routine di python utilizzata risultano molto lontani dalle stime a priori riportate nella Sezione~4.1. 
+L'aspetto rilevante è quindi che i valori stimati a priori,
+$L_{\mathrm{priori}}$ e $C_{\mathrm{priori}}$, non devono necessariamente
+coincidere con il minimo numerico della mappa, ma risultano comunque compatibili
+con la regione di minimo allungata. \\
+Viste le considerazioni fatte sopra, per il fit dei dati del modulo della funzione di trasferimento è stato utilizzato il seguente modello con variabile indipendete $\omega = 2\pi f$: 
+
+\begin{equation}
+T_R(\omega)=
+\frac{A}{
+\sqrt{
+1+
+Q(L,C,R)^2
+\left(
+\frac{\omega}{\omega_0(L,C)}
+-
+\frac{\omega_0(L,C)}{\omega}
+\right)^2
+}
+},
+\end{equation}
+
+Mentre per i dati di fase è stato invece utilizzato il modello seguente: 
+
+\begin{equation}
+    \Delta\phi_R(\omega) =  \arctan \left[Q(L,C,R)\left( \frac{\omega} \omega_0(L,C) - \frac{\omega_0(L,C)}{\omega} \right)\right]
+\end{equation}
+
+Di seguito si riporta il grafico del fit delle funzioni di trasferimento, in scala logaritmica, con uno zoom nella zona di picco corrispondente alla frequenza di risonanza $f_0$.
+
+\begin{figure} [H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{NL_moduli.pdf}
+    \caption{Fit non lineare di $T_R(\omega)$, con zoom in prossimità del picco}
+    \label{fig:placeholder}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\label{tab:risultati_fit_non_lineare}
+\renewcommand{\arraystretch}{1.35}
+\resizebox{1\textwidth}{!}{%  <-- qui imposti la larghezza desiderata
+\begin{tabular}{|c|c|c|c|c|c|}
+\hline
+\textbf{Parametro}
+& \textbf{Range $f$ [kHz]} 
+& \boldmath$\boldsymbol{A}$ 
+& \boldmath$\boldsymbol{\omega_0}$ \textbf{[Krad/s]} 
+& \boldmath$\boldsymbol{Q}$ 
+& \boldmath$\boldsymbol{\chi^2/\mathrm{ndf}}$ \\
+\hline
+\textbf{Valore}
+& $5 - 900$
+& $0.420 \pm 0.001$
+& $818.6 \pm 0.2$
+& $10.23 \pm 0.05$
+& $106.4/106 \approx 1$ \\
+\hline
+\end{tabular}%
+}
+\caption{Risultati del fit non lineare di $T_R(\omega)$}
+\end{table}
+
+L'ottimo valore del $\chi^2/ndf$ indica un buon accordo tra modello e misure: quest'ultimo è compatibile con le incertezze sperimentali assegnate. Inoltre osservando il grafico dei residui si nota che, in prossimità del picco di risonanza, essi non risultano distribuiti in modo puramente casuale attorno allo zero. In particolare, i residui mostrano una struttura sistematica, più evidente nella regione in cui il segnale varia rapidamente. Questo comportamento può essere attribuito al cambio di scala verticale dell'oscilloscopio effettuato durante l'acquisizione delle tensioni. \\
+A partire dai parametri ricavati dal fit si calcolano $f_0$ e $\Delta f$ usando le formule (13) e (15); per i risultati si rimanda alla tabella nelle conclusioni. Per visualizzare il procedimento con cui sono state ricavate le incertezze associate ai parametri del fit, si riportano di seguito le mappe del $\chi^2$ nei piani $(\omega_0,Q)$ e $(A,\omega_0)$, minimizzando ogni volta rispetto al parametro non rappresentato: il terzo parametro viene profilato, cioè viene scelto il valore che minimizza il $\chi^2$. Tagliando la curva a $\chi^2_{min} + 1$ e proiettandola sugli assi dei parametri si ottengono le incertezze a loro associate. \\
+Questa procedura è stata anche eseguita anche come controllo indipendente dei risultati forniti dalla libreria \textit{Scipy} utilizzata per il fit non lineare. 
+
+\begin{figure}[H]
+\centering
+
+\hfill
+\begin{minipage}{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{chimap_modulo1.pdf}
+    \caption{Mappa del $\chi^2$ nel piano $(\omega_0,Q)$}
+    \label{fig:chi2LC_modulo}
+\end{minipage}
+\hfill
+\begin{minipage}{0.49\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{chimap_modulo2.pdf}
+    \caption{Mappa del $\chi^2$ nel piano $(A,\omega_0)$}
+    \label{fig:chi2LC_sfasamento}
+\end{minipage}
+
+\end{figure}
+
+Si riporta di seguito il fit non lineare per gli sfasamenti, utilizzando la formula (3). 
+
+
+\begin{figure}[H]
+\centering
+    \begin{minipage}[t]{0.5\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{NL_sfasamenti.pdf}
+    \caption{Fit non lineare di $\Delta \phi_R$}
+    \label{fig:sfasamenti_fit}
+    \end{minipage}%
+\hfill
+    \begin{minipage}[t]{0.48\textwidth}
+    \centering
+    \renewcommand{\arraystretch}{1.35}
+    \vspace{-6cm}
+        \begin{tabular}{|l|c|}
+        \hline
+        \textbf{Parametro} & \textbf{Valore} \\
+        \hline
+        \textbf{Range $f$ [kHz]} & $5 - 900$ \\
+        \hline
+        $\boldsymbol{\omega_0}$ \textbf{[krad/s]} & $819.17 \pm 0.02$ \\
+        \hline
+        $\boldsymbol{Q}$ & $10.31 \pm 0.03$ \\
+        \hline
+        $\boldsymbol{\chi^2/\mathrm{ndf}}$ & $65.52 \,/\, 79 \approx 0.83$ \\
+        \hline
+        \end{tabular}
+    \captionof{table}{Risultati fit non lineare di $\Delta \phi_R$}
+    \label{tab:risultati_fit_non_lineare}
+    \end{minipage}
+\end{figure}
+
+Dai residui si osserva che gli scarti sono generalmente piccoli e distribuiti attorno allo zero, anche se nella regione centrale, vicina alla risonanza, compare una struttura leggermente più evidente. Questa zona è proprio quella in cui lo sfasamento varia più rapidamente con la frequenza, quindi piccole incertezze nella determinazione dell'attraversamento dello zero temporale possono produrre variazioni più visibili in termini di fase.
+Anche in questo caso si calcolano $f_0$ e $\Delta f$ usando le formule (13) e (15) e i risultati del fit. Si riporta di seguito la mappa del $\chi^2$ nel piano ($Q,\omega_0$), tagliando la curva a $\chi^2_{min} + 1$ e proiettandola sugli assi dei parametri.
+
+\begin{figure} [H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{chimap_sfasamento.pdf}
+    \caption{Mappa del $\chi^2$ nel piano $(Q,\omega_0)$}
+    \label{fig:placeholder}
+\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{Discussione e conclusioni}
+
+Si riporta di seguito una tabella conclusiva i parametri $f_0, \Delta f$ e $Q$ stimati con tre diversi metodi. 
+
+\begin{table}[H]
+\centering
+\caption{Confronto delle stime finali di $f_0$, $\Delta f$ e $Q$ ottenute con i diversi metodi.}
+\label{tab:stime_finali}
+\renewcommand{\arraystretch}{1.35}
+
+% Cambia 0.90 per modificare la dimensione della tabella
+\resizebox{0.60\textwidth}{!}{%
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Metodo} 
+& \boldmath$\boldsymbol{f_0}$ \textbf{[kHz]}
+& \boldmath$\boldsymbol{\Delta f}$ \textbf{[kHz]}
+& \boldmath$\boldsymbol{Q}$ \\
+\hline
+Stima a priori &  &  &  \\
+\hline
+Stima puntuale &  &  &  \\
+\hline
+Fit lineare locale -- modulo &  &  &  \\
+\hline
+Fit lineare locale -- sfasamento &  &  &  \\
+\hline
+Fit non lineare -- modulo &  &  &  \\
+\hline
+Fit non lineare -- sfasamento &  &  &  \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+
+
+
+
+\section{Appendice}
+
+\subsection{Formule statistiche}
+\vspace{0.2cm}
+
+\begin{itemize}
+
+\item \textbf{Interpolazione lineare pesata}
+\begin{equation}
+a = \frac{1}{\Delta} \left[ \left( \sum_{i} \frac{x_i^2}{\sigma_i^2} \right) \cdot \left( \sum_{i} \frac{y_i}{\sigma_i^2} \right) - \left( \sum_{i} \frac{x_i}{\sigma_i^2} \right) \cdot \left( \sum_{i} \frac{x_i y_i}{\sigma_i^2} \right) \right]
+\end{equation}
+
+\begin{equation}
+b = \frac{1}{\Delta} \left[ \left( \sum_{i} \frac{1}{\sigma_i^2} \right) \cdot \left( \sum_{i} \frac{x_i y_i}{\sigma_i^2} \right) - \left( \sum_{i} \frac{x_i}{\sigma_i^2} \right) \cdot \left( \sum_{i} \frac{y_i}{\sigma_i^2} \right) \right]
+\end{equation}
+
+\begin{equation}
+\begin{cases}
+\sigma_a^2 = \dfrac{1}{\Delta} \sum_{i} \dfrac{x_i^2}{\sigma_i^2}, \\
+\sigma_b^2 = \dfrac{1}{\Delta} \sum_{i} \dfrac{1}{\sigma_i^2}.
+\end{cases}
+\end{equation}
+
+\begin{equation}
+\Delta = \left( \sum_{i} \frac{1}{\sigma_i^2} \right) \cdot \left( \sum_{i} \frac{x_i^2}{\sigma_i^2} \right) - \left( \sum_{i} \frac{x_i}{\sigma_i^2} \right)^2
+\end{equation}
+
+\begin{equation}
+\sigma_{y,\text{post}} = \sqrt{\frac{\sum_{i=1}^N (y_i - a - bx_i)^2}{N - 2}}
+\end{equation}
+
+\vspace{0.2cm}
+
+
+\item \textbf{Massima verosimiglianza (MLE) con errori gaussiani indipendenti}
+Se \(y_i \sim \mathcal{N}(f(x_i;\boldsymbol{\theta}),\,\sigma_i^2)\) indipendenti:
+\begin{equation}
+\mathcal{L}(\boldsymbol{\theta})=\prod_{i=1}^{N}\frac{1}{\sqrt{2\pi}\sigma_i}\exp\!\left[-\frac{(y_i-f(x_i;\boldsymbol{\theta}))^2}{2\sigma_i^2}\right].
+\end{equation}
+Massimizzare \(\mathcal{L}\) equivale a minimizzare la \(\chi^2\):
+\begin{equation}
+-2\ln\mathcal{L}(\boldsymbol{\theta})=\chi^2(\boldsymbol{\theta})+\text{costante}.
+\end{equation}
+
+\item \textbf{Matrice di covarianza dei parametri (approssimazione lineare)}
+Indicando con \(J\) la jacobiana \(J_{i\mu}=\partial f(x_i;\boldsymbol{\theta})/\partial\theta_\mu\) e \(W=\mathrm{diag}(1/\sigma_i^2)\):
+\begin{equation}
+\mathrm{cov}(\boldsymbol{\theta}) \simeq (J^{T}WJ)^{-1}.
+\end{equation}
+
+\subsection{Formule fisiche}
+
+\item \textbf{Frequenza di risonanza a priori}
+\begin{equation}
+    f_0 (L,C)= \frac{1}{2\pi \sqrt{LC}}
+\end{equation}
+
+\item \textbf{Pulsazione di risonanza a priori}
+\begin{equation}
+\omega_0(L,C)= 2\pi f_0 = \frac{1}{\sqrt{LC}},
+\end{equation}
+
+\item \textbf{Larghezza di banda}
+\begin{equation}
+    \Delta f(R,L)=\frac{R}{2\pi L}
+\end{equation}
+
+\item \textbf{Fattore di merito del circuito}
+\begin{equation}
+Q(L,C,R)=\frac{1}{R}\sqrt{\frac{L}{C}} = \frac{f_0}{\Delta f}
+\end{equation}
+
+
+
+
+
+\end{itemize}
+
+\end{document}

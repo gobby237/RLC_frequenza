@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 import mplhep as hep
 from cycler import cycler
 import multiprocessing.pool
+from matplotlib.text import Text
 
 # ============================================================
 # PARAMETRI MODIFICABILI DALL'UTENTE
@@ -50,10 +51,25 @@ DEB = False
 # Ogni coppia xmin/xmax agisce sul pannello superiore e sui residui
 # quando i due pannelli condividono l'asse x.
 
+# ============================================================
+# AUMENTO FONT PER OGNI GRAFICO
+# ============================================================
+# Ogni valore viene sommato alla dimensione di TUTTI i font del grafico:
+# titoli, label assi, tick, legenda, colorbar, testi interni.
+# Usa 0 per lasciare invariato. Puoi usare anche valori negativi.
+
+g1_volt_font_plus = 4       # Grafico 1A: Vin e Vout
+g1_T_font_plus = 0          # Grafico 1B: funzione di trasferimento
+g2_font_plus = 0            # Grafico 2: fit + residui asse lineare
+g2log_font_plus = 0         # Grafico extra: fit + residui asse x log
+g3_font_plus = 0            # Grafico 3: minimo chi2 + residui
+g4_font_plus = 4            # Grafico 4: profilo chi2 omega0-Q
+g5_font_plus = 4            # Grafico 5: profilo chi2 A-omega0
+
 # Grafico 1: dati completi, pannello tensioni
 g1_volt_xmin, g1_volt_xmax = None, None
 g1_volt_ymin, g1_volt_ymax = None, None
-g1_volt_xlog, g1_volt_ylog = False, False
+g1_volt_xlog, g1_volt_ylog = True, False
 
 # Grafico 1: dati completi, pannello funzione di trasferimento
 g1_T_xmin, g1_T_xmax = None, None
@@ -181,7 +197,7 @@ def profi1D(axes_to_remove, matrix3D):
     return matrix3D.min(axis=real_axes)
 
 # ============================================================
-# FUNZIONI UTILI PER RANGE E SCALE DEI GRAFICI
+# FUNZIONI UTILI PER RANGE, SCALE E FONT DEI GRAFICI
 # ============================================================
 def apply_axis_settings(ax, xmin=None, xmax=None, ymin=None, ymax=None,
                         xlog=False, ylog=False):
@@ -194,6 +210,25 @@ def apply_axis_settings(ax, xmin=None, xmax=None, ymin=None, ymax=None,
         ax.set_xscale('log')
     if ylog:
         ax.set_yscale('log')
+
+
+def add_fontsize_to_figure(fig, delta):
+    """
+    Aumenta di delta punti tutti i font presenti nella figura:
+    titoli, label assi, tick, legende, colorbar e testi interni.
+    """
+    if delta is None or delta == 0:
+        return
+
+    already_done = set()
+
+    for txt in fig.findobj(match=lambda artist: isinstance(artist, Text)):
+        if id(txt) in already_done:
+            continue
+        already_done.add(id(txt))
+
+        old_size = txt.get_fontsize()
+        txt.set_fontsize(max(1, old_size + delta))
 
 
 # ============================================================
@@ -240,6 +275,8 @@ ax.tick_params(axis='both', which='minor', labelsize=13)
 apply_axis_settings(ax, g1_volt_xmin, g1_volt_xmax, g1_volt_ymin, g1_volt_ymax,
                     g1_volt_xlog, g1_volt_ylog)
 
+add_fontsize_to_figure(fig, g1_volt_font_plus)
+
 plt.savefig(file.replace('.txt', '') + '_1_Vin_Vout.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
             facecolor='w', edgecolor='w', orientation='Portrait', dpi=120)
@@ -258,6 +295,8 @@ ax.set_xlabel(r'Frequenza [kHz]')
 
 apply_axis_settings(ax, g1_T_xmin, g1_T_xmax, g1_T_ymin, g1_T_ymax,
                     g1_T_xlog, g1_T_ylog)
+
+add_fontsize_to_figure(fig, g1_T_font_plus)
 
 plt.savefig(file.replace('.txt', '') + '_1_T.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
@@ -331,6 +370,8 @@ ax[1].set_xlabel(r'Frequenza [kHz]')
 ax[1].plot(fr, np.zeros(len(fr)), color='black')
 apply_axis_settings(ax[1], g2_xmin, g2_xmax, g2_res_ymin, g2_res_ymax)
 
+add_fontsize_to_figure(fig, g2_font_plus)
+
 plt.savefig(file.replace('.txt', '') + '_2.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
             facecolor='w', edgecolor='w', orientation='Portrait', dpi=100)
@@ -387,7 +428,7 @@ if MAKE_LOG_RESONANCE_ZOOM:
         height_ratios=[2, 1],
         width_ratios=[1.55, 1.0],
         hspace=0.05,
-        wspace=0.12,
+        wspace=0.05,
     )
 
     ax_main = fig.add_subplot(gs[0, 0])
@@ -538,6 +579,8 @@ if MAKE_LOG_RESONANCE_ZOOM:
         axx.set_xticklabels([f'{v:.1f}' for v in zoom_xticks], fontsize=log_tick_fs)
         axx.xaxis.set_minor_formatter(NullFormatter())
 
+add_fontsize_to_figure(fig, g2log_font_plus)
+
 plt.savefig(file.replace('.txt', '') + '_2_logx_zoom_side.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
             facecolor='w', edgecolor='w', orientation='Portrait', dpi=120)
@@ -551,7 +594,7 @@ eA_BF, eB_BF, eC_BF = perr
 
 print('============== BEST FIT with SciPy ====================')
 print(r'A = ({a:.3e} +/- {b:.1e})'.format(a=A_BF, b=eA_BF))
-print(r'B = ({c:.5e} +/- {d:.1e}) kHz'.format(c=B_BF * 1e-3, d=eB_BF * 1e-3))
+print(r'B = ({c:.5e} +/- {d:.1e}) krad/s'.format(c=B_BF * 1e-3, d=eB_BF * 1e-3))
 print(r'C = ({e:.3e} +/- {f:.1e})'.format(e=C_BF, f=eC_BF))
 print(r'chisq = {m:.2f}'.format(m=chisq))
 print('=======================================================')
@@ -613,6 +656,8 @@ ax[1].set_xlabel(r'Frequenza [kHz]')
 ax[1].plot(fr, np.zeros(N), color='black')
 apply_axis_settings(ax[1], g3_xmin, g3_xmax, g3_res_ymin, g3_res_ymax)
 
+add_fontsize_to_figure(fig, g3_font_plus)
+
 plt.savefig(file.replace('.txt', '') + '_3.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
             facecolor='w', edgecolor='w', orientation='Portrait', dpi=100)
@@ -650,10 +695,18 @@ errCC = C_chi[C_sx] - C_chi[argchi2_min[2]]
 
 print('============== BEST FIT with chi2 ====================')
 print(r'A = ({a:.3e} - {b:.1e} + {c:.1e})'.format(a=A_chi[argchi2_min[0]], b=errA, c=errAA))
-print(r'B = ({d:.5e} - {e:.1e} + {f:.1e}) kHz'.format(d=B_chi[argchi2_min[1]] * 1e-3, e=errB * 1e-3, f=errBB * 1e-3))
+print(r'B = ({d:.5e} - {e:.1e} + {f:.1e}) krad/s'.format(d=B_chi[argchi2_min[1]] * 1e-3, e=errB * 1e-3, f=errBB * 1e-3))
 print(r'C = ({g:.3e} - {h:.1e} + {n:.1e}) '.format(g=C_chi[argchi2_min[2]], h=errC, n=errCC))
 print(r'chisq = {m:.2f}'.format(m=np.min(mappa)))
 print('=======================================================')
+
+# Variabili di omega0 per la sola visualizzazione dei grafici chi2.
+# Il fit resta espresso in rad/s, ma sugli assi si mostra omega0 in krad/s.
+B_chi_plot = B_chi * 1e-3
+B0_plot = B0 * 1e-3
+B1_plot = B1 * 1e-3
+errB_plot = errB * 1e-3
+errBB_plot = errBB * 1e-3
 
 # ============================================================
 # GRAFICO 4: PROFILI CHI2
@@ -667,13 +720,13 @@ fig, ax = plt.subplots(2, 2, figsize=(5.5, 5), constrained_layout=True,
                        sharex='col', sharey='row')
 fig.suptitle(r'$\chi^2 \left(\omega_0, Q \right)$')
 
-im = ax[0, 1].contourf(B_chi, C_chi, chi2D, levels=level, cmap=cmap)
+im = ax[0, 1].contourf(B_chi_plot, C_chi, chi2D, levels=level, cmap=cmap)
 cbar = fig.colorbar(im, extend='both', shrink=0.9, ax=ax[0, 1],
                     ticks=[int(chi2_min), int(chi2_min + 2), int(chi2_min + 4), int(chi2_min + 6)])
 cbar.set_label(r'$\chi^2$', rotation=360)
 
 CS = ax[0, 1].contour(
-    B_chi,
+    B_chi_plot,
     C_chi,
     chi2D,
     levels=[chi2_min + 0.0001, chi2_min + 1, chi2_min + 2.3, chi2_min + 3.8],
@@ -684,7 +737,7 @@ CS = ax[0, 1].contour(
 )
 ax[0, 1].clabel(CS, inline=True, fontsize=9, fmt='%.1f')
 ax[0, 1].text(
-    B_chi[np.argmin(prof_B)],
+    B_chi_plot[np.argmin(prof_B)],
     C_chi[np.argmin(prof_C)],
     r'{g:.0f}'.format(g=chi2_min),
     color='k',
@@ -692,10 +745,10 @@ ax[0, 1].text(
     fontsize=9,
 )
 
-ax[0, 1].plot([B0, B1], [C_chi[C_sx], C_chi[C_sx]], color=line_c, ls='dashed')
-ax[0, 1].plot([B0, B1], [C_chi[C_dx], C_chi[C_dx]], color=line_c, ls='dashed')
-ax[0, 1].plot([B_chi[B_sx], B_chi[B_sx]], [C0, C1], color=line_c, ls='dashed')
-ax[0, 1].plot([B_chi[B_dx], B_chi[B_dx]], [C0, C1], color=line_c, ls='dashed')
+ax[0, 1].plot([B0_plot, B1_plot], [C_chi[C_sx], C_chi[C_sx]], color=line_c, ls='dashed')
+ax[0, 1].plot([B0_plot, B1_plot], [C_chi[C_dx], C_chi[C_dx]], color=line_c, ls='dashed')
+ax[0, 1].plot([B_chi_plot[B_sx], B_chi_plot[B_sx]], [C0, C1], color=line_c, ls='dashed')
+ax[0, 1].plot([B_chi_plot[B_dx], B_chi_plot[B_dx]], [C0, C1], color=line_c, ls='dashed')
 
 ax[0, 0].plot(prof_C, C_chi, ls='-')
 ax[0, 0].plot([int(chi2_min - 1), int(chi2_min + 4)], [C_chi[C_sx], C_chi[C_sx]], color=line_c, ls='dashed')
@@ -708,20 +761,20 @@ ax[0, 0].text(int(chi2_min + 2), C_chi[C_sx],
 ax[0, 0].text(int(chi2_min + 2), C_chi[C_dx],
               r'{g:.2f}'.format(g=-errC), color='r', alpha=0.5, fontsize=9)
 
-ax[1, 1].plot(B_chi, prof_B)
-ax[1, 1].plot([B_chi[B_sx], B_chi[B_sx]], [int(chi2_min - 1), int(chi2_min + 4)], color=line_c, ls='dashed')
-ax[1, 1].plot([B_chi[B_dx], B_chi[B_dx]], [int(chi2_min - 1), int(chi2_min + 4)], color=line_c, ls='dashed')
-ax[1, 1].text(B_chi[np.argmin(prof_B)], int(chi2_min + 1),
-              r'{g:.3e}'.format(g=B_chi[np.argmin(prof_B)]), color='k', alpha=0.5, fontsize=9)
-ax[1, 1].text(B_chi[B_sx], int(chi2_min + 2),
-              r'{g:.0e}'.format(g=errBB), color='b', alpha=0.5, fontsize=9)
-ax[1, 1].text(B_chi[B_dx], int(chi2_min + 2),
-              r'{g:.0e}'.format(g=-errB), color='r', alpha=0.5, fontsize=9)
+ax[1, 1].plot(B_chi_plot, prof_B)
+ax[1, 1].plot([B_chi_plot[B_sx], B_chi_plot[B_sx]], [int(chi2_min - 1), int(chi2_min + 4)], color=line_c, ls='dashed')
+ax[1, 1].plot([B_chi_plot[B_dx], B_chi_plot[B_dx]], [int(chi2_min - 1), int(chi2_min + 4)], color=line_c, ls='dashed')
+ax[1, 1].text(B_chi_plot[np.argmin(prof_B)], int(chi2_min + 1),
+              r'{g:.3e}'.format(g=B_chi_plot[np.argmin(prof_B)]), color='k', alpha=0.5, fontsize=9)
+ax[1, 1].text(B_chi_plot[B_sx], int(chi2_min + 2),
+              r'{g:.0e}'.format(g=errBB_plot), color='b', alpha=0.5, fontsize=9)
+ax[1, 1].text(B_chi_plot[B_dx], int(chi2_min + 2),
+              r'{g:.0e}'.format(g=-errB_plot), color='r', alpha=0.5, fontsize=9)
 ax[1, 1].set_yticks([int(chi2_min), int(chi2_min + 4), int(chi2_min + 6)])
 
 ax[1, 0].set_axis_off()
 ax[0, 0].set_ylabel(r'$Q$-valore')
-ax[1, 1].set_xlabel(r'$\omega_0$ [Hz]', loc='center')
+ax[1, 1].set_xlabel(r'$\omega_0$ [krad/s]', loc='center')
 
 # Range automatici predefiniti per i profili, modificabili dalle variabili g4_*.
 default_prof_xmin = int(chi2_min - 1)
@@ -746,6 +799,8 @@ if g4_C_ymin is not None or g4_C_ymax is not None:
     ax[0, 1].set_ylim(g4_C_ymin, g4_C_ymax)
     ax[0, 0].set_ylim(g4_C_ymin, g4_C_ymax)
 
+add_fontsize_to_figure(fig, g4_font_plus)
+
 plt.savefig(file.replace('.txt', '') + '_4.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
             facecolor='w', edgecolor='w', orientation='Portrait', dpi=100)
@@ -765,7 +820,7 @@ fig, ax = plt.subplots(2, 2, figsize=(5.5, 5), constrained_layout=True,
 fig.suptitle(r'$\chi^2 \left(A, \omega_0 \right)$')
 
 # --- Pannello principale: contour 2D (A su x, omega0 su y) ---
-im = ax[0, 1].contourf(A_chi, B_chi, chi2D_AB, levels=level_AB, cmap=cmap)
+im = ax[0, 1].contourf(A_chi, B_chi_plot, chi2D_AB, levels=level_AB, cmap=cmap)
 cbar = fig.colorbar(im, extend='both', shrink=0.9, ax=ax[0, 1],
                     ticks=[int(chi2_min), int(chi2_min + 2),
                            int(chi2_min + 4), int(chi2_min + 6)])
@@ -773,7 +828,7 @@ cbar.set_label(r'$\chi^2$', rotation=360)
 
 CS = ax[0, 1].contour(
     A_chi,
-    B_chi,
+    B_chi_plot,
     chi2D_AB,
     levels=[chi2_min + 0.0001, chi2_min + 1, chi2_min + 2.3, chi2_min + 3.8],
     linewidths=1,
@@ -784,7 +839,7 @@ CS = ax[0, 1].contour(
 ax[0, 1].clabel(CS, inline=True, fontsize=9, fmt='%.1f')
 ax[0, 1].text(
     A_chi[np.argmin(prof_A)],
-    B_chi[np.argmin(prof_B)],
+    B_chi_plot[np.argmin(prof_B)],
     r'{g:.0f}'.format(g=chi2_min),
     color='k',
     alpha=0.5,
@@ -792,26 +847,26 @@ ax[0, 1].text(
 )
 
 # Linee di errore nel piano A-omega0
-ax[0, 1].plot([A0, A1], [B_chi[B_sx], B_chi[B_sx]], color=line_c, ls='dashed')
-ax[0, 1].plot([A0, A1], [B_chi[B_dx], B_chi[B_dx]], color=line_c, ls='dashed')
-ax[0, 1].plot([A_chi[A_sx], A_chi[A_sx]], [B0, B1], color=line_c, ls='dashed')
-ax[0, 1].plot([A_chi[A_dx], A_chi[A_dx]], [B0, B1], color=line_c, ls='dashed')
+ax[0, 1].plot([A0, A1], [B_chi_plot[B_sx], B_chi_plot[B_sx]], color=line_c, ls='dashed')
+ax[0, 1].plot([A0, A1], [B_chi_plot[B_dx], B_chi_plot[B_dx]], color=line_c, ls='dashed')
+ax[0, 1].plot([A_chi[A_sx], A_chi[A_sx]], [B0_plot, B1_plot], color=line_c, ls='dashed')
+ax[0, 1].plot([A_chi[A_dx], A_chi[A_dx]], [B0_plot, B1_plot], color=line_c, ls='dashed')
 
 # --- Pannello sinistro: profilo di omega0 (asse y) ---
-ax[0, 0].plot(prof_B, B_chi, ls='-')
+ax[0, 0].plot(prof_B, B_chi_plot, ls='-')
 ax[0, 0].plot([int(chi2_min - 1), int(chi2_min + 4)],
-              [B_chi[B_sx], B_chi[B_sx]], color=line_c, ls='dashed')
+              [B_chi_plot[B_sx], B_chi_plot[B_sx]], color=line_c, ls='dashed')
 ax[0, 0].plot([int(chi2_min - 1), int(chi2_min + 4)],
-              [B_chi[B_dx], B_chi[B_dx]], color=line_c, ls='dashed')
+              [B_chi_plot[B_dx], B_chi_plot[B_dx]], color=line_c, ls='dashed')
 ax[0, 0].set_xticks([int(chi2_min), int(chi2_min + 1), int(chi2_min + 4), int(chi2_min + 6)])
-ax[0, 0].set_ylabel(r'$\omega_0$ [rad/s]')
-ax[0, 0].text(int(chi2_min + 1), B_chi[np.argmin(prof_B)],
-              r'{g:.3e}'.format(g=B_chi[np.argmin(prof_B)]),
+ax[0, 0].set_ylabel(r'$\omega_0$ [krad/s]')
+ax[0, 0].text(int(chi2_min + 1), B_chi_plot[np.argmin(prof_B)],
+              r'{g:.3e}'.format(g=B_chi_plot[np.argmin(prof_B)]),
               color='k', alpha=0.5, fontsize=9)
-ax[0, 0].text(int(chi2_min + 2), B_chi[B_sx],
-              r'{g:.0e}'.format(g=errBB), color='b', alpha=0.5, fontsize=9)
-ax[0, 0].text(int(chi2_min + 2), B_chi[B_dx],
-              r'{g:.0e}'.format(g=-errB), color='r', alpha=0.5, fontsize=9)
+ax[0, 0].text(int(chi2_min + 2), B_chi_plot[B_sx],
+              r'{g:.0e}'.format(g=errBB_plot), color='b', alpha=0.5, fontsize=9)
+ax[0, 0].text(int(chi2_min + 2), B_chi_plot[B_dx],
+              r'{g:.0e}'.format(g=-errB_plot), color='r', alpha=0.5, fontsize=9)
 
 # --- Pannello in basso: profilo di A (asse x) ---
 ax[1, 1].plot(A_chi, prof_A)
@@ -827,7 +882,7 @@ ax[1, 1].text(A_chi[A_sx], int(chi2_min + 2),
 ax[1, 1].text(A_chi[A_dx], int(chi2_min + 2),
               r'{g:.1e}'.format(g=-errA), color='r', alpha=0.5, fontsize=9)
 ax[1, 1].set_yticks([int(chi2_min), int(chi2_min + 4), int(chi2_min + 6)])
-ax[1, 1].set_xlabel(r'$A$ [-]', loc='center')
+ax[1, 1].set_xlabel(r'$A$ [a.d.]', loc='center')
 
 ax[1, 0].set_axis_off()
 
@@ -839,6 +894,8 @@ ax[1, 1].set_ylim(
     default_prof_ymin if g4_prof_ymin is None else g4_prof_ymin,
     default_prof_ymax if g4_prof_ymax is None else g4_prof_ymax,
 )
+
+add_fontsize_to_figure(fig, g5_font_plus)
 
 plt.savefig(file.replace('.txt', '') + '_5_A_omega0.png',
             bbox_inches='tight', pad_inches=1, transparent=True,
