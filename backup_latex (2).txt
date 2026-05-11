@@ -71,6 +71,143 @@ $R$, $L$ e $C$ sono le componenti del circuito, con $R_L$ la resistenza parassit
 Sono inoltre rappresentati gli effetti non ideali degli strumenti di misura: $C_c$ è la capacità dei cavi coassiali, mentre le sonde sono modellate tramite $R_S$ e $C_S$ in parallelo. 
 L'ingresso dell'oscilloscopio è descritto da $R_O$ e $C_O$. 
 
+
+\begin{figure}[htbp]
+\centering
+
+\resizebox{1.03\textwidth}{!}{%
+\begin{circuitikz}[
+    scale=0.95,
+    transform shape,
+    font=\scriptsize,
+    bipoles/length=0.67cm
+]
+
+% ============================================================
+% Riquadri tratteggiati
+% ============================================================
+\draw[dashed] (-0.6,-0.6) rectangle (1.5,3.45);
+\draw[dashed] (2.9,-0.6) rectangle (7.35,3.45);
+\draw[dashed] (7.65,-0.6) rectangle (11.65,3.45);
+\draw[dashed] (11.9,-0.6) rectangle (17.15,3.45);
+
+\node at (0.45,-0.95) {\normalsize Generatore};
+\node at (4.70,-0.95) {\normalsize Collegamento CH1};
+\node at (9.85,-0.95) {\normalsize Circuito RLC};
+\node at (14.65,-0.95) {\normalsize Collegamento CH2};
+
+% ============================================================
+% Linea di massa comune
+% ============================================================
+\draw (0,0) -- (16.75,0);
+
+% ============================================================
+% Generatore con resistenza interna
+% ============================================================
+\draw (0,0) to[sV] (0,2.4);
+\draw (0,2.4) to[R,l=$R_G$] (1.45,2.4);
+
+% ============================================================
+% Collegamento principale generatore -> circuito
+% ============================================================
+\draw (1.45,2.4) -- (7.80,2.4);
+
+% Capacità del cavo coassiale del generatore
+\draw (2.25,2.4) to[C] (2.25,0);
+\node[right] at (2.30,0.70) {$C_c$};
+
+% ============================================================
+% CH1: ramo in parallelo tra Vin e massa
+% ============================================================
+
+% Modello della sonda: R_S // C_S
+\draw (3.25,2.4) to[R] (3.25,0);
+\node[left] at (4,0.67) {$R_S$};
+
+\draw (4.05,2.4) to[C] (4.05,0);
+\node[right] at (4.10,0.67) {$C_S$};
+
+% Ingresso oscilloscopio: C_O // R_O
+\draw (5.1,2.4) to[C] (5.1,0);
+\node[left] at (5.7,0.67) {$C_O$};
+
+\draw (5.90,2.4) to[R] (5.90,0);
+\node[right] at (6.05,0.70) {$R_O$};
+
+% Simbolo CH1
+\draw (6.75,2.4) -- (6.75,1.55);
+\oscprobe{6.75}{1.27}
+\draw (6.75,0.99) -- (6.75,0);
+
+\node[above] at (6.75,2.67) {\textbf{CH1}};
+
+% Nodo di ingresso del circuito: Vin
+\coordinate (Nin) at (7.80,2.4);
+
+% ============================================================
+% Circuito RLC serie
+% ============================================================
+\draw (Nin)
+    to[C,l=$C$] (8.6,2.4)
+    to[R,l=$R_L$] (9.8,2.4)
+    to[L,l=$L$] (11.25,2.4);
+
+% Nodo di uscita: Vout ai capi di R
+\coordinate (Nout) at (11.25,2.4);
+
+% Resistenza ai capi della quale si misura Vout
+\draw (Nout) to[R,l_=$R$] (11.25,0);
+
+% ============================================================
+% Collegamento principale verso CH2
+% ============================================================
+\draw (Nout) -- (16.75,2.4);
+
+% ============================================================
+% CH2: ramo in parallelo tra Vout e massa
+% ============================================================
+
+% Modello della sonda: R_S // C_S
+\draw (12.8,2.4) to[R] (12.8,0);
+\node[left] at (12.6,0.95) {$R_S$};
+
+\draw (13.7,2.4) to[C] (13.7,0);
+\node[right] at (13.8,0.67) {$C_S$};
+
+% Ingresso oscilloscopio: C_O // R_O
+\draw (14.80,2.4) to[C] (14.80,0);
+\node[left] at (15.6,0.67) {$C_O$};
+
+\draw (15.70,2.4) to[R] (15.70,0);
+\node[right] at (15.85,0.70) {$R_O$};
+
+% Simbolo CH2
+\draw (16.75,2.4) -- (16.75,1.55);
+\oscprobe{16.75}{1.27}
+\draw (16.75,0.99) -- (16.75,0);
+
+\node[above] at (16.50,2.67) {\textbf{CH2}};
+
+% ============================================================
+% Massa a destra
+% ============================================================
+\draw (16.6,0) -- (16.6,-0.25);
+\draw (16.35,-0.25) -- (16.85,-0.25);
+\draw (16.43,-0.36) -- (16.77,-0.36);
+\draw (16.51,-0.47) -- (16.69,-0.47);
+
+\end{circuitikz}
+}
+
+\caption{Schema circuitale con sonde, cavi coassiali e impedenza d'ingresso dell'oscilloscopio.}
+\label{fig:schema_circuitale}
+
+\end{figure}
+
+
+
+\begin{comment}
+
 \begin{figure}[htbp]
 \centering
 
@@ -207,6 +344,8 @@ L'ingresso dell'oscilloscopio è descritto da $R_O$ e $C_O$.
 \label{fig:schema_circuitale}
 
 \end{figure}
+
+\end{comment}
 
 
 \begin{comment}
@@ -373,7 +512,7 @@ I dati acquisiti sono di due tipi:
     In prossimità della risonanza, dove lo sfasamento è piccolo e l'attraversamento dello zero meno evidente, il valore misurato è stato preso come punto medio dell'intervallo compatibile con l'osservazione.
 \end{itemize}
 
-I dati così ottenuti sono stati riportati nel file Excel indicato a piè di pagina\footnote{https://shorturl.at/U7jYd}. 
+I dati così ottenuti sono stati riportati nel file Excel indicato a piè di pagina\footnote{https://shorturl.at/bXNnp}. 
 Tutte le grandezze misurate sono state riportate in funzione della frequenza impostata in uscita dal generatore, considerata priva di incertezza. 
 Sono state acquisite le curve dei moduli e degli sfasamenti, infittendo il campionamento in prossimità della risonanza e delle frequenze di taglio per migliorare l'accuratezza dell'analisi. Di seguito i grafici relativi ai dati grezzi. 
 
@@ -466,8 +605,10 @@ Una volta ottenute $f_1$ e $f_2$ con entrambi i metodi, le restanti grandezze so
     \item Fattore di merito: $Q = \frac{f_0}{\Delta f}$
 \end{itemize}
 
-I risultati ottenuti sono riassunti nella seguente tabella comparativa:
+I risultati ottenuti sono riassunti nella tabella comparativa riportata nelle conclusioni.
 
+
+\begin{comment}
 \begin{table}[H]
 \centering
 \begin{tabular}{|l|c|c|}
@@ -482,6 +623,7 @@ $Q$                & $10.5 \pm 0.1$            & $10.38 \pm 0.04$              \
 \caption{Confronto dei parametri del circuito ricavati dai due metodi sperimentali.}
 \label{tab:confronto_metodi}
 \end{table}
+\end{comment}
 
 
 \subsection{Stima resistenza totale del circuito}
@@ -495,23 +637,25 @@ Si procede con il metodo del fit lineare per la determinazione della larghezza d
 
 Per trovare $f_1$ e $f_2$ si sono cercate le frequenze alle quali per le ampiezze, la funzione di trasferimento, $|A|=\frac{V_{out}}{V_{in}}$, approssimava il valore teorico di $\frac{T_{R,max}}{\sqrt{2}}$, mentre per la fase, $\Delta\phi\approx\pm45^\circ$ e si è infittita la presa dati nei loro intorni. Ci si serve dei fit lineari per avere una stima affidabile delle due frequenze ai limiti della banda, che altrimenti non sarebbero determinabili con precisione. Come si illustra di seguito:
 
-\begin{figure} [H]
-\begin{minipage}{0.5\linewidth}
+\begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{doppio_fit_tensioni.pdf}
-    \caption{fit dell'ampiezza}
-    \label{fig:chi2LC_sfasamento}
-\end{minipage}
-\hfill
-\begin{minipage}{0.5\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{doppio_fit_fase.pdf}
-    \caption{fit della fase}
-    \label{fig:chi2LC_modulo}
-\end{minipage}
-
+    % Prima immagine: si prende il 49% esatto della pagina
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        % Qui forziamo l'immagine a riempire tutto il suo 49%
+        \includegraphics[width=\linewidth]{doppio_fit_tensioni.pdf}
+        \caption{Fit dell'ampiezza}
+        \label{fig:chi2LC_sfasamento}
+    \end{minipage}%
+    \hfill % Lo spazio elastico in mezzo
+    % Seconda immagine: si prende l'altro 49%
+    \begin{minipage}{0.49\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{doppio_fit_fase.pdf}
+        \caption{Fit della fase}
+        \label{fig:chi2LC_modulo}
+    \end{minipage}
 \end{figure}
-
 
 
 Attraverso l'interpolazione lineare dei punti in un intorno delle due frequenze, si sono ricavati i parametri della retta $m$ e $q$. Risulta quindi immediata la stima di $f_{1,2}$, una volta fissata $y$ al valore soglia di $\frac{T_{R,max}}{\sqrt{2}}$ per le ampiezze e $\pm 45^\circ$ per la fase, usufruendo della formula inversa:
@@ -520,18 +664,35 @@ f_{1,2}=\frac{y_{soglia}-q}{m}
 \]
 
 Di seguito si espongono grafici e parametri stimati dai fit lineari locali attorno alle frequenze di banda:
-\begin{figure}[htbp]
+
+
+\begin{figure}[H]
     \centering
-    % ---- METÀ SINISTRA: L'IMMAGINE (allargata al 48%) ----
-    \begin{minipage}{0.6\textwidth}
+    % Prima sottofigura
+    \begin{subfigure}[b]{0.49\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{fit_f1_ampiezze.pdf}
-        \caption{Grafico dell'interpolazione.}
-        \label{fig:fit_ampiezza}
-    \end{minipage}% <--- Questo percento è fondamentale per non avere spazi extra
-    \hfill % Spinge le due minipage ai bordi opposti
-    % ---- METÀ DESTRA: LA TABELLA (allargata al 48%) ----
-    \begin{minipage}{0.4\textwidth}
+        \includegraphics[width=\textwidth]{fit_f1_ampiezze.pdf}
+        \caption{Descrizione della prima immagine}
+        \label{fig:immagine1}
+    \end{subfigure}
+    \hfill % Inserisce spazio elastico tra le due immagini per distanziarle al massimo
+    % Seconda sottofigura
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{fit_2_ampiezze.pdf}
+        \caption{Descrizione della seconda immagine}
+        \label{fig:immagine2}
+    \end{subfigure}
+    
+    \caption{Titolo cumulativo delle due figure affiancate.}
+    \label{fig:confronto}
+\end{figure}
+
+
+\begin{table}[H]
+    \centering
+    % Prima Tabella (Sinistra)
+    \begin{minipage}{0.48\textwidth}
         \centering
         \begin{tabular}{|l|l|}
             \hline
@@ -540,35 +701,19 @@ Di seguito si espongono grafici e parametri stimati dai fit lineari locali attor
             Intervallo & $122.5 - 126.0$ kHz \\
             Punti usati & 15 \\
             \hline
-            Pendenza $m$ & $(2.196 \pm 0.088)\cdot 10^{-2}$ \\
-            Intercetta $q$ & $-2.427 \pm 0.099$ gradi \\
+            Pendenza $m$ & $(2.20 \pm 0.09)\cdot 10^{-2}$ \\
+            Intercetta $q$ & $-2.4 \pm 0.1$ ° \\
             \hline
             $\chi^2/\text{ndf}$ & $6.38 / 13 = 0.49$ \\
             \hline
-            %Soglia teorica & $0.3013$ \\
-            %\hline
-            \textbf{$f_{1}$ interp.} & $\mathbf{124.262 \pm 2.109}$ \textbf{kHz} \\
+            \textbf{$f_{1}$ } & ${124.3 \pm 2.1}$ kHz \\
             \hline
         \end{tabular}
-        \captionof{table}{Risultati del fit lineare locale.}
-        \label{tab:valori_fit}
+        %\caption{Descrizione tabella 1} % Opzionale
     \end{minipage}
-\end{figure}
-\vspace{0.5}
-
-
-\begin{figure}[H]
-    \centering
-    % ---- METÀ SINISTRA: L'IMMAGINE (allargata al 48%) ---
-    \begin{minipage}{0.6\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{fit_2_ampiezze.pdf}
-        \caption{Grafico dell'interpolazione.}
-        \label{fig:fit_ampiezza}
-    \end{minipage}% <--- Questo percento è fondamentale per non avere spazi extra
-    \hfill % Spinge le due minipage ai bordi opposti
-    % ---- METÀ DESTRA: LA TABELLA (allargata al 48%) ----
-    \begin{minipage}{0.4\textwidth}
+    \hfill % Spazio elastico per separare le tabelle
+    % Seconda Tabella (Destra)
+    \begin{minipage}{0.48\textwidth}
         \centering
         \begin{tabular}{|l|l|}
             \hline
@@ -577,21 +722,21 @@ Di seguito si espongono grafici e parametri stimati dai fit lineari locali attor
             Intervallo & $134.0 - 138.0$ kHz \\
             Punti usati & 13 \\
             \hline
-            Pendenza $m$ & $(-2.307 \pm 0.090)\cdot 10^{-2}$ \\
-            Intercetta $q$ & $3.452 \pm 0.111$ gradi \\
+            Pendenza $m$ & $(-2.31 \pm 0.09)\cdot 10^{-2}$ \\
+            Intercetta $q$ & $3.5 \pm 0.1$ ° \\
             \hline
             $\chi^2/\text{ndf}$ & $1.77 / 11 = 0.16$ \\
             \hline
-            %Soglia teorica & $0.3013$ \\
-            %\hline
-            \textbf{$f_{2}$ interp.} & $\mathbf{136.563 \pm 2.318}$ \textbf{kHz} \\
+            \textbf{$f_{2}$ } & ${136.6 \pm 2.3}$ kHz \\
             \hline
         \end{tabular}
-        \captionof{table}{Risultati del fit lineare locale.}
-        \label{tab:valori_fit}
+        %\caption{Descrizione tabella 2} % Opzionale
     \end{minipage}
-\end{figure}
-\vspace{0.5} 
+\end{table}
+
+
+
+
 Come incertezza da associare ai punti si utilizza la formula di propagazione dell'errore di $\sigma_{T_R}$ discussa in precedenza, ma si contano solamente i primi due termini rappresentanti l'errore di lettura, in quanto nel piccolo intorno considerato per ogni fit, si è avuto cura di non cambiare mai le sonde né la scala.
 
 Tuttavia un'errore sistematico di calibrazione è presente, in quanto si usano due sonde diverse per i due canali, che introducono un'incertezza fino a $\sigma_k=1.2\%$ su un fattore moltiplicativo $k$. Questo fattore, essendo sistematico, modifica ogni punto nella stessa direzione influenzando di fatto la pendenza della retta interpolante, la cui incertezza diventa dunque $\sigma_m=\sqrt{\sigma_{m,fit}^2+2(m\cdot\sigma_k)^2 }$ dalla formula di propagazione degli errori. 
@@ -599,16 +744,31 @@ Tuttavia un'errore sistematico di calibrazione è presente, in quanto si usano d
 
 \begin{figure}[H]
     \centering
-    % ---- METÀ SINISTRA: L'IMMAGINE (allargata al 48%) ---
-    \begin{minipage}{0.6\textwidth}
+    % Prima sottofigura
+    \begin{subfigure}[b]{0.49\textwidth}
         \centering
-        \includegraphics[width=\linewidth]{fit_f1_fase.pdf}
-        \caption{Grafico dell'interpolazione.}
-        \label{fig:fit_ampiezza}
-    \end{minipage}% <--- Questo percento è fondamentale per non avere spazi extra
-    \hfill % Spinge le due minipage ai bordi opposti
-    % ---- METÀ DESTRA: LA TABELLA (allargata al 48%) ----
-    \begin{minipage}{0.4\textwidth}
+        \includegraphics[width=\textwidth]{fit_f1_fase.pdf}
+        \caption{Descrizione della prima immagine}
+        \label{fig:immagine1}
+    \end{subfigure}
+    \hfill % Inserisce spazio elastico tra le due immagini per distanziarle al massimo
+    % Seconda sottofigura
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{fit_f2_fase.pdf}
+        \caption{Descrizione della seconda immagine}
+        \label{fig:immagine2}
+    \end{subfigure}
+    
+    \caption{Titolo cumulativo delle due figure affiancate.}
+    \label{fig:confronto}
+\end{figure}
+
+
+\begin{table}[H]
+    \centering
+    % Prima Tabella (Sinistra - f1)
+    \begin{minipage}{0.49\textwidth}
         \centering
         \begin{tabular}{|l|l|}
             \hline
@@ -617,34 +777,18 @@ Tuttavia un'errore sistematico di calibrazione è presente, in quanto si usano d
             Intervallo & $123.0 - 126.0$ kHz \\
             Punti usati & 9 \\
             \hline
-            Pendenza $m$ & $(5.564 \pm 0.294)\cdot 10^{-2}$ \\
-            Intercetta $q$ & $(-7.368 \pm 0.366)\cdot10^{2}$ gradi \\
+            Pendenza $m$ & $(5.6 \pm 0.3)\cdot 10^{-2}$ \\
+            Intercetta $q$ & $(-7.4 \pm 0.4)\cdot10^{2}$ ° \\
             \hline
             $\chi^2/\text{ndf}$ & $2.29 / 7 = 0.33$ \\
             \hline
-            %Soglia teorica & $$ \\
-            %\hline
-            \textbf{$f_{1}$ interp.} & $\mathbf{124.331 \pm 0.0406}$ \textbf{kHz} \\
+            \textbf{$f_{1}$ } & ${124.331 \pm 0.041}$ kHz \\
             \hline
         \end{tabular}
-        \captionof{table}{Risultati del fit lineare locale.}
-        \label{tab:valori_fit}
     \end{minipage}
-\end{figure}
-
-
-\begin{figure}[H]
-    \centering
-    % ---- METÀ SINISTRA: L'IMMAGINE (allargata al 48%) ---
-    \begin{minipage}{0.6\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{fit_f2_fase.pdf}
-        \caption{Grafico dell'interpolazione.}
-        \label{fig:fit_ampiezza}
-    \end{minipage}% <--- Questo percento è fondamentale per non avere spazi extra
-    \hfill % Spinge le due minipage ai bordi opposti
-    % ---- METÀ DESTRA: LA TABELLA (allargata al 48%) ----
-    \begin{minipage}{0.4\textwidth}
+    \hfill % Spinge le tabelle ai lati opposti
+    % Seconda Tabella (Destra - f2)
+    \begin{minipage}{0.49\textwidth}
         \centering
         \begin{tabular}{|l|l|}
             \hline
@@ -653,20 +797,20 @@ Tuttavia un'errore sistematico di calibrazione è presente, in quanto si usano d
             Intervallo & $135.5 - 138.0$ kHz \\
             Punti usati & 12 \\
             \hline
-            Pendenza $m$ & $(4.644 \pm 0.359)\cdot 10^{-2}$ \\
-            Intercetta $q$ & $(-5.911 \pm 0.490)\cdot10^{2}$ gradi \\
+            Pendenza $m$ & $(4.6 \pm 0.4)\cdot 10^{-2}$ \\
+            Intercetta $q$ & $(-5.9 \pm 0.5)\cdot10^{2}$ ° \\
             \hline
             $\chi^2/\text{ndf}$ & $7.41 / 10 = 0.74$ \\
             \hline
-            %Soglia teorica & $0.3013$ \\
-            %\hline
-            \textbf{$f_{2}$ interp.} & $\mathbf{136.994 \pm 0.054}$ \textbf{kHz} \\
+            \textbf{$f_{2}$ } & ${136.994 \pm 0.054}$ kHz \\
             \hline
         \end{tabular}
-        \captionof{table}{Risultati del fit lineare locale.}
-        \label{tab:valori_fit}
     \end{minipage}
-\end{figure}
+\end{table}
+
+
+
+
 Dove si utilizzano le incertezze sulle singole misure discusse in precedenza, a eccezione di quella su $m$ che non risente del fattore $k$, in quanto, nonostante le due sonde, entrambe le misure per il $\Delta t$ sono state prese dallo stesso hardware, l'oscilloscopio, e quindi si elidono nella formula della fase $360^\circ \cdot \frac{\Delta t}{T}$. 
 
 Una volta stimate con precisione le frequenze di banda, si usano le stesse relazioni (..),(..), (..) delle stime puntuali per trovare gli altri parametri che descrivono il circuito:
@@ -782,14 +926,14 @@ Per visualizzare il procedimento con cui sono state ricavate le incertezze assoc
 \hfill
 \begin{minipage}{0.48\linewidth}
     \centering
-    \includegraphics[width=\linewidth]{chimap_modulo1.pdf}
+    \includegraphics[width=\linewidth]{chimap_modulo1_corretto.pdf}
     \caption{Mappa del $\chi^2$ nel piano $(\omega_0,Q)$}
     \label{fig:chi2LC_modulo}
 \end{minipage}
 \hfill
 \begin{minipage}{0.49\linewidth}
     \centering
-    \includegraphics[width=\linewidth]{chimap_modulo2.pdf}
+    \includegraphics[width=\linewidth]{chimap_modulo2_corretto.pdf}
     \caption{Mappa del $\chi^2$ nel piano $(A,\omega_0)$}
     \label{fig:chi2LC_sfasamento}
 \end{minipage}
@@ -838,14 +982,23 @@ $5 - 900$
 \caption{Risultati del fit non lineare sugli sfasamenti.}
 \end{table}
 
-Anche in questo caso il $\chi^2/ndf$ indica un buon accordo tra i dati e la curva di fit. Inoltre dai residui si osserva che gli scarti sono generalmente piccoli e distribuiti attorno allo zero, anche se nella regione centrale, vicina alla risonanza, compare una struttura leggermente più evidente a concavità negativa, probabile sintomo di una componente di errore sistematico che non si è riusciti a modellizare. 
-Anche in questo caso si calcolano $f_0$ e $\Delta f$ usando le formule (13) e (15) a partire dai risultati del fit. Si riporta di seguito la mappa del $\chi^2$ nel piano ($Q,\omega_0$), tagliando la curva a $\chi^2_{min} + 1$ e proiettandola sugli assi dei parametri.
+\begin{figure}[H]
+\centering
 
-\begin{figure} [H]
-    \centering
-    \includegraphics[width=0.5\linewidth]{chimap_sfasamento.pdf}
-    \caption{Mappa del $\chi^2$ nel piano ($\omega_0, Q$)}
-    \label{fig:placeholder}
+\begin{minipage}[c]{0.48\textwidth}
+\vspace{-2cm}
+Anche in questo caso il $\chi^2/\mathrm{ndf}$ indica un buon accordo tra i dati e la curva di fit. Dai residui si osserva che gli scarti sono generalmente piccoli e distribuiti attorno allo zero, anche se nella regione centrale, vicina alla risonanza, compare una struttura leggermente più evidente a concavità negativa, probabile sintomo di una componente di errore sistematico non completamente modellizzata.\\
+Anche in questo caso si calcolano $f_0$ e $\Delta f$ usando le formule (13) e (15) a partire dai risultati del fit. Si riporta a fianco la mappa del $\chi^2$ nel piano $(\omega_0,Q)$, ottenuta tagliando la curva a $\chi^2_{\min}+1$ e proiettandola sugli assi dei parametri.
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.48\textwidth}
+\vspace{-0.6cm}
+\centering
+\includegraphics[width=\linewidth]{chimap_sfasamento_corretto.pdf}
+\caption{Mappa del $\chi^2$ nel piano $(\omega_0, Q)$.}
+\label{fig:chimap_sfasamento}
+\end{minipage}
+
 \end{figure}
 
 
@@ -935,7 +1088,7 @@ Stima a priori
 \caption{Confronto delle stime finali di $f_0$, $\Delta f$ e $Q$ ottenute con i diversi metodi.}
 \end{table}
 
-Dai risultati riportati in Tabella (9) si osserva innanzitutto una buona compatibilità generale tra le diverse stime della frequenza di risonanza. La stima a priori,
+Dai risultati riportati in Tabella (4) si osserva innanzitutto una buona compatibilità generale tra le diverse stime della frequenza di risonanza. La stima a priori,
 è molto meno precisa delle stime sperimentali, principalmente a causa dell'incertezza sull'induttanza, ma risulta comunque compatibile con tutte le misure successive. Essa ha quindi soprattutto il ruolo di controllo preliminare dell'ordine di grandezza atteso.
 
 Le stime puntuali forniscono valori già vicini a quelli finali, ma dipendono fortemente dall'individuazione sperimentale degli intervalli di frequenza in cui si verificano le condizioni \(T_R=T_{R,\max}/\sqrt{2}\) oppure \(\Delta\phi=\pm\pi/4\). Per questo motivo sono utili come prima valutazione, ma non sfruttano l'intera informazione contenuta nei dati. Tra le due, quella basata sugli sfasamenti risulta più stabile, perché meno sensibile alla calibrazione verticale delle sonde.

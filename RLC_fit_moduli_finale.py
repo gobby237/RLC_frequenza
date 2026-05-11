@@ -290,7 +290,7 @@ fig, ax = plt.subplots(1, 1, figsize=(6.0, 4.2), constrained_layout=True)
 ax.errorbar(fr, TR, yerr=eTR, fmt='o',
             label=r'$T_R=\frac{V_{out}}{V_{in}}$', ms=2, color='darkred')
 ax.legend(prop={'size': 10}, loc='best')
-ax.set_ylabel(r'Funzione di trasferimento $T_R$')
+ax.set_ylabel(r'$T_R(\omega)$')
 ax.set_xlabel(r'Frequenza [kHz]')
 
 apply_axis_settings(ax, g1_T_xmin, g1_T_xmax, g1_T_ymin, g1_T_ymax,
@@ -361,7 +361,7 @@ ax[0].plot(x_fit, fit_func(x_fit, A_init, B_init, C_init),
 ax[0].errorbar(fr, TR, yerr=eTR, fmt='o',
                label=r'$T_R=\frac{V_{out}}{V_{in}}$', ms=2, color='darkred')
 ax[0].legend(loc='upper left')
-ax[0].set_ylabel(r'Funzione di trasferimento $T_R$')
+ax[0].set_ylabel(r'$T_R(\omega)$')
 apply_axis_settings(ax[0], g2_xmin, g2_xmax, g2_ymin, g2_ymax)
 
 ax[1].errorbar(fr, residuA, yerr=eTR, fmt='o', label=r'Residui', ms=2, color='darkred')
@@ -453,14 +453,14 @@ log_legend_fs = 13
 # Grafico totale, asse x log
 # ----------------------------
 from matplotlib.patches import Rectangle
-from matplotlib.ticker import LogLocator, NullFormatter, ScalarFormatter
+from matplotlib.ticker import LogLocator, NullFormatter, ScalarFormatter, MaxNLocator, AutoMinorLocator
 
 ax_main.plot(x_fit_log, fit_func(x_fit_log, *popt),
              label='Fit', linestyle='--', color='black')
 ax_main.errorbar(fr_log, TR_log, yerr=eTR_log, fmt='o',
                  label=r'$T_R=\frac{V_{out}}{V_{in}}$', ms=2, color='darkred')
 ax_main.set_xscale('log')
-ax_main.set_ylabel(r'Funzione di trasferimento $T_R$', fontsize=log_label_fs)
+ax_main.set_ylabel(r'$T_R$', fontsize=log_label_fs)
 ax_main.legend(loc='best', fontsize=log_legend_fs)
 ax_main.set_title(r'Fit funzione di trasferimento con asse logaritmico', fontsize=log_title_fs)
 apply_axis_settings(ax_main, g2log_xmin, g2log_xmax, g2log_ymin, g2log_ymax, xlog=True)
@@ -477,8 +477,9 @@ apply_axis_settings(ax_res, g2log_xmin, g2log_xmax, g2log_res_ymin, g2log_res_ym
 # Zoom separato a destra
 # ----------------------------
 if MAKE_LOG_RESONANCE_ZOOM:
-    # Anche lo zoom usa scala logaritmica sull'asse x.
-    x_fit_zoom = np.logspace(np.log10(zoom_xmin), np.log10(zoom_xmax), 1000)
+    # Nello zoom uso una scala lineare e i tick automatici di Matplotlib,
+    # cosi le tacche risultano naturali e non forzate da valori scelti a mano.
+    x_fit_zoom = np.linspace(zoom_xmin, zoom_xmax, 1000)
     mask_zoom_data = (fr_log >= zoom_xmin) & (fr_log <= zoom_xmax)
 
     ax_zoom.plot(x_fit_zoom, fit_func(x_fit_zoom, *popt),
@@ -504,9 +505,8 @@ if MAKE_LOG_RESONANCE_ZOOM:
             pad = 0.08 * (ymax - ymin) if ymax > ymin else 0.05 * max(abs(ymax), 1.0)
             ax_zoom.set_ylim(ymin - pad, ymax + pad)
 
-    ax_zoom.set_xscale('log')
     ax_zoom.axvline(f0_fit_khz, color='0.35', ls=':', lw=0.9)
-    ax_zoom.set_ylabel(r'Funzione di trasferimento $T_R$', fontsize=log_label_fs)
+    ax_zoom.set_ylabel(r'$T_R$', fontsize=log_label_fs)
     ax_zoom.set_title(r'Zoom vicino a $f_0$', fontsize=log_title_fs)
     ax_zoom.legend(loc='best', fontsize=log_legend_fs)
 
@@ -531,7 +531,6 @@ if MAKE_LOG_RESONANCE_ZOOM:
                          yerr=eTR_log[mask_zoom_data], fmt='o',
                          ms=2.2, color='darkred')
     ax_zoom_res.set_xlim(zoom_xmin, zoom_xmax)
-    ax_zoom_res.set_xscale('log')
     ax_zoom_res.set_ylabel(r'Residui', fontsize=log_label_fs)
     ax_zoom_res.set_xlabel(r'Frequenza [kHz]', fontsize=log_label_fs)
 
@@ -569,15 +568,19 @@ for axx in [ax_main, ax_res]:
     axx.set_xticklabels([f'{v:g}' for v in main_xticks], fontsize=log_tick_fs)
     axx.xaxis.set_minor_formatter(NullFormatter())
 
-# Nello zoom mostro 6 etichette equidistanti nel range selezionato.
-# Le etichette sono stampate con una sola cifra decimale, tipo 130.1.
+# Nello zoom lascio tick automatici su scala lineare.
+# Questo evita tacche artificiali del tipo 120.3, 124.3, ... e produce
+# valori piu naturali, scelti da Matplotlib in base al range mostrato.
 if MAKE_LOG_RESONANCE_ZOOM:
-    zoom_xticks = np.linspace(zoom_xmin, zoom_xmax, 6)
+    zoom_formatter = ScalarFormatter(useMathText=False)
+    zoom_formatter.set_scientific(False)
+    zoom_formatter.set_useOffset(False)
 
     for axx in [ax_zoom, ax_zoom_res]:
-        axx.set_xticks(zoom_xticks)
-        axx.set_xticklabels([f'{v:.1f}' for v in zoom_xticks], fontsize=log_tick_fs)
-        axx.xaxis.set_minor_formatter(NullFormatter())
+        axx.xaxis.set_major_locator(MaxNLocator(nbins=5, steps=[1, 2, 2.5, 5, 10]))
+        axx.xaxis.set_minor_locator(AutoMinorLocator())
+        axx.xaxis.set_major_formatter(zoom_formatter)
+        axx.tick_params(axis='x', which='major', labelsize=log_tick_fs)
 
 add_fontsize_to_figure(fig, g2log_font_plus)
 
@@ -718,7 +721,7 @@ line_c = 'gray'
 fig, ax = plt.subplots(2, 2, figsize=(5.5, 5), constrained_layout=True,
                        height_ratios=[3, 1], width_ratios=[1, 3],
                        sharex='col', sharey='row')
-fig.suptitle(r'$\chi^2 \left(\omega_0, Q \right)$')
+fig.suptitle(r'$\chi^2 \left(\omega_0, Q \right) - T_R(\omega)$')
 
 im = ax[0, 1].contourf(B_chi_plot, C_chi, chi2D, levels=level, cmap=cmap)
 cbar = fig.colorbar(im, extend='both', shrink=0.9, ax=ax[0, 1],
@@ -774,7 +777,7 @@ ax[1, 1].set_yticks([int(chi2_min), int(chi2_min + 4), int(chi2_min + 6)])
 
 ax[1, 0].set_axis_off()
 ax[0, 0].set_ylabel(r'$Q$-valore')
-ax[1, 1].set_xlabel(r'$\omega_0$ [krad/s]', loc='center')
+ax[1, 1].set_xlabel(r'$\omega_0$ [krad/s]', loc='right')
 
 # Range automatici predefiniti per i profili, modificabili dalle variabili g4_*.
 default_prof_xmin = int(chi2_min - 1)
@@ -817,7 +820,7 @@ level_AB = np.linspace(np.min(chi2D_AB), np.max(chi2D_AB), 100)
 fig, ax = plt.subplots(2, 2, figsize=(5.5, 5), constrained_layout=True,
                        height_ratios=[3, 1], width_ratios=[1, 3],
                        sharex='col', sharey='row')
-fig.suptitle(r'$\chi^2 \left(A, \omega_0 \right)$')
+fig.suptitle(r'$\chi^2 \left(A, \omega_0 \right) - T_R(\omega)$')
 
 # --- Pannello principale: contour 2D (A su x, omega0 su y) ---
 im = ax[0, 1].contourf(A_chi, B_chi_plot, chi2D_AB, levels=level_AB, cmap=cmap)
@@ -882,7 +885,7 @@ ax[1, 1].text(A_chi[A_sx], int(chi2_min + 2),
 ax[1, 1].text(A_chi[A_dx], int(chi2_min + 2),
               r'{g:.1e}'.format(g=-errA), color='r', alpha=0.5, fontsize=9)
 ax[1, 1].set_yticks([int(chi2_min), int(chi2_min + 4), int(chi2_min + 6)])
-ax[1, 1].set_xlabel(r'$A$ [a.d.]', loc='center')
+ax[1, 1].set_xlabel(r'$A$ [a.d.]', loc='right')
 
 ax[1, 0].set_axis_off()
 

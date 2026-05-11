@@ -31,10 +31,23 @@ step_scan = 100    # punti per parametro (griglia step x step)
 FONT_INCREMENT = 5
 DT_COLOR = 'teal'   # non rosso e non blu scuro
 
-# --- Tick sull'asse y nei grafici dei fit ---
-# Aumenta leggermente il numero di etichette, senza renderle troppo fitte.
-fit_y_tick_nbins = 9
-res_y_tick_nbins = 4
+# --- Zoom del grafico del fit SciPy ---
+# Se g2_zoom_center_khz = None, il centro viene preso dal fit: f0 = omega0/(2*pi).
+MAKE_SCIPY_RESONANCE_ZOOM = True
+g2_zoom_center_khz = None
+g2_zoom_half_width_khz = 3.2
+g2_zoom_xmin, g2_zoom_xmax = None, None
+g2_zoom_ymin, g2_zoom_ymax = None, None
+g2_zoom_res_ymin, g2_zoom_res_ymax = None, None
+g2_zoom_wspace = 0.08
+g2_zoom_hspace = 0.05
+
+# --- Numero di etichette sull'asse y nel grafico del fit con zoom ---
+# Il pannello principale del fit usa 7 etichette; i residui principali e
+# i residui dello zoom ne usano 4, per non appesantire troppo la figura.
+g2_fit_y_tick_nbins = 7
+g2_res_y_tick_nbins = 4
+g2_zoom_res_y_tick_nbins = 4
 
 # --- Debug ---
 DEB = False
@@ -70,11 +83,10 @@ CLABEL_SIZE = 9 + FONT_INCREMENT
 TEXT_SIZE = 8 + FONT_INCREMENT
 
 
-
 def format_uncertainty_label(value):
     """
-    Formatta le incertezze mostrate nei profili del chi2 con una
-    precisione leggibile: ad esempio 0.033 -> 0.03 e 1.85 -> 1.9.
+    Formatta le incertezze mostrate nei profili del chi2 in modo leggibile:
+    esempi: 0.033 -> 0.03, 1.85 -> 1.9.
     """
     value = abs(float(value))
     if value == 0:
@@ -158,7 +170,7 @@ plt.show()
 # GRAFICO 1: dati completi con errori
 # ============================================================
 fig, ax = plt.subplots(1, 1, figsize=(6, 4), constrained_layout=True)
-ax.errorbar(fr_all, phi_all, yerr=ephi_all, fmt='o', ms=2, color='darkblue',
+ax.errorbar(fr_all, phi_all, yerr=ephi_all, fmt='o', ms=2, color='blue',
             label=r'$\Delta\phi_R(f)$')
 ax.axhline(np.pi / 2, color='gray', ls='dashed', lw=0.8)
 ax.axhline(-np.pi / 2, color='gray', ls='dashed', lw=0.8)
@@ -210,32 +222,153 @@ print(f'chi2   = {chisq:.2f}   chi2/ndf = {chisq_rid:.3f}  (ndf={df_fit})')
 print('=======================================================')
 
 # ============================================================
-# GRAFICO 2: fit + residui (SciPy)
+# GRAFICO 2: fit + residui (SciPy), con zoom vicino a f0
 # ============================================================
 x_fit = np.linspace(min(fr), max(fr), 1000)
 
-fig, ax = plt.subplots(2, 1, figsize=(5, 4), sharex=True,
-                       constrained_layout=True, height_ratios=[2, 1])
+# Centro e limiti dello zoom attorno alla risonanza.
+if MAKE_SCIPY_RESONANCE_ZOOM:
+    if g2_zoom_center_khz is None:
+        zoom_center = f0_BF
+    else:
+        zoom_center = g2_zoom_center_khz
 
-ax[0].plot(x_fit, fitf_phase_R(x_fit, *popt),
-           label='Fit', ls='--', color='black')
-ax[0].errorbar(fr, phi, yerr=ephi, fmt='o', ms=2, color='darkblue',
-               label=r'$\Delta\phi_R$')
-ax[0].axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8,
-              label=r'$0, \ \pm\pi/4$')
-ax[0].axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8,
-              label='_nolegend_')
-ax[0].axhline(0, color='gray', ls='dotted', lw=0.8)
-ax[0].set_ylabel(r'$\Delta\phi_R$ [rad]')
-ax[0].yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=fit_y_tick_nbins))
-ax[0].legend(loc='best', prop={'size': LEGEND_SMALL})
+    if g2_zoom_xmin is None:
+        zoom_xmin = zoom_center - g2_zoom_half_width_khz
+    else:
+        zoom_xmin = g2_zoom_xmin
 
-ax[1].errorbar(fr, residuA, yerr=ephi, fmt='o', ms=2, color='darkblue',
-               label='Residui')
-ax[1].axhline(0, color='black', lw=0.8)
-ax[1].set_ylabel(r'Residui')
-ax[1].set_xlabel(r'Frequenza [kHz]')
-ax[1].yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=res_y_tick_nbins))
+    if g2_zoom_xmax is None:
+        zoom_xmax = zoom_center + g2_zoom_half_width_khz
+    else:
+        zoom_xmax = g2_zoom_xmax
+
+    zoom_xmin = max(zoom_xmin, np.min(fr[fr > 0]))
+    zoom_xmax = min(zoom_xmax, np.max(fr))
+    if zoom_xmax <= zoom_xmin:
+        zoom_xmin = max(zoom_center * 0.9, np.min(fr[fr > 0]))
+        zoom_xmax = min(zoom_center * 1.1, np.max(fr))
+
+if MAKE_SCIPY_RESONANCE_ZOOM:
+    from matplotlib.patches import Rectangle
+
+    fig = plt.figure(figsize=(10.2, 5.0), constrained_layout=True)
+    gs = fig.add_gridspec(
+        2, 2,
+        height_ratios=[2, 1],
+        width_ratios=[1.55, 1.0],
+        hspace=g2_zoom_hspace,
+        wspace=g2_zoom_wspace,
+    )
+
+    ax_main = fig.add_subplot(gs[0, 0])
+    ax_res = fig.add_subplot(gs[1, 0], sharex=ax_main)
+    ax_zoom = fig.add_subplot(gs[0, 1])
+    ax_zoom_res = fig.add_subplot(gs[1, 1], sharex=ax_zoom)
+else:
+    fig, (ax_main, ax_res) = plt.subplots(
+        2, 1, figsize=(5, 4), sharex=True,
+        constrained_layout=True, height_ratios=[2, 1]
+    )
+    ax_zoom = None
+    ax_zoom_res = None
+
+# ----------------------------
+# Grafico completo
+# ----------------------------
+ax_main.plot(x_fit, fitf_phase_R(x_fit, *popt),
+             label='Fit', ls='--', color='black')
+ax_main.errorbar(fr, phi, yerr=ephi, fmt='o', ms=2, color='darkblue',
+                 label=r'$\Delta\phi_R$')
+ax_main.axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8)
+ax_main.axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8)
+ax_main.axhline(0, color='gray', ls='dotted', lw=0.8)
+ax_main.set_ylabel(r'$\Delta\phi_R$ [rad]')
+ax_main.set_title(r'Fit non lineare dello sfasamento')
+ax_main.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=g2_fit_y_tick_nbins))
+
+ax_res.errorbar(fr, residuA, yerr=ephi, fmt='o', ms=2, color='darkblue',
+                label='Residui')
+ax_res.axhline(0, color='black', lw=0.8)
+ax_res.set_ylabel(r'Residui [rad]')
+ax_res.set_xlabel(r'Frequenza [kHz]')
+ax_res.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=g2_res_y_tick_nbins))
+
+# ----------------------------
+# Zoom separato vicino a f0
+# ----------------------------
+if MAKE_SCIPY_RESONANCE_ZOOM:
+    x_fit_zoom = np.linspace(zoom_xmin, zoom_xmax, 1000)
+    mask_zoom_data = (fr >= zoom_xmin) & (fr <= zoom_xmax)
+
+    ax_zoom.plot(x_fit_zoom, fitf_phase_R(x_fit_zoom, *popt),
+                 label='Fit', ls='--', color='black')
+    ax_zoom.errorbar(fr[mask_zoom_data], phi[mask_zoom_data],
+                     yerr=ephi[mask_zoom_data], fmt='o', ms=2.2,
+                     color='darkblue', label=r'$\Delta\phi_R$')
+    ax_zoom.axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8)
+    ax_zoom.axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8)
+    ax_zoom.axhline(0, color='gray', ls='dotted', lw=0.8)
+    ax_zoom.axvline(f0_BF, color='0.35', ls=':', lw=0.9)
+    ax_zoom.set_xlim(zoom_xmin, zoom_xmax)
+    ax_zoom.set_ylabel(r'$\Delta\phi_R$ [rad]')
+    ax_zoom.set_title(r'Zoom vicino a $f_0$')
+
+    if g2_zoom_ymin is not None or g2_zoom_ymax is not None:
+        ax_zoom.set_ylim(g2_zoom_ymin, g2_zoom_ymax)
+    else:
+        y_values = []
+        if np.any(mask_zoom_data):
+            y_values.extend((phi[mask_zoom_data] - ephi[mask_zoom_data]).tolist())
+            y_values.extend((phi[mask_zoom_data] + ephi[mask_zoom_data]).tolist())
+        y_values.extend(fitf_phase_R(x_fit_zoom, *popt).tolist())
+        y_values = np.asarray(y_values, dtype=float)
+        y_values = y_values[np.isfinite(y_values)]
+        if len(y_values) > 0:
+            ymin = np.min(y_values)
+            ymax = np.max(y_values)
+            pad = 0.08 * (ymax - ymin) if ymax > ymin else 0.05 * max(abs(ymax), 1.0)
+            ax_zoom.set_ylim(ymin - pad, ymax + pad)
+
+    # Rettangolo grigio chiaro sul grafico principale: indica la zona riportata nello zoom.
+    zoom_ymin_rect, zoom_ymax_rect = ax_zoom.get_ylim()
+    rect = Rectangle(
+        (zoom_xmin, zoom_ymin_rect),
+        zoom_xmax - zoom_xmin,
+        zoom_ymax_rect - zoom_ymin_rect,
+        fill=False,
+        edgecolor='0.65',
+        linewidth=1.0,
+        linestyle='-',
+        zorder=10,
+        label='Area dello zoom',
+    )
+    ax_main.add_patch(rect)
+
+    ax_zoom_res.errorbar(fr[mask_zoom_data], residuA[mask_zoom_data],
+                         yerr=ephi[mask_zoom_data], fmt='o', ms=2.2,
+                         color='darkblue')
+    ax_zoom_res.axhline(0, color='black', lw=0.8)
+    ax_zoom_res.set_xlim(zoom_xmin, zoom_xmax)
+    ax_zoom_res.set_ylabel(r'Residui [rad]')
+    ax_zoom_res.set_xlabel(r'Frequenza [kHz]')
+    ax_zoom_res.yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=g2_zoom_res_y_tick_nbins))
+
+    if g2_zoom_res_ymin is not None or g2_zoom_res_ymax is not None:
+        ax_zoom_res.set_ylim(g2_zoom_res_ymin, g2_zoom_res_ymax)
+    else:
+        rz = residuA[mask_zoom_data]
+        erz = ephi[mask_zoom_data]
+        if len(rz) > 0:
+            yres = np.concatenate([rz - erz, rz + erz, [0.0]])
+            ymin = np.nanmin(yres)
+            ymax = np.nanmax(yres)
+            pad = 0.10 * (ymax - ymin) if ymax > ymin else 0.02
+            ax_zoom_res.set_ylim(ymin - pad, ymax + pad)
+
+    ax_zoom.legend(loc='best', prop={'size': LEGEND_SMALL})
+
+ax_main.legend(loc='best', prop={'size': LEGEND_SMALL})
 
 plt.savefig(file.replace('.txt', '') + '_2.png',
             bbox_inches='tight', transparent=True,
@@ -292,24 +425,20 @@ fig, ax = plt.subplots(2, 1, figsize=(5, 4), sharex=True,
 
 ax[0].plot(x_fit,
            fitf_phase_R(x_fit, B_chi[iB_min], C_chi[iC_min]),
-           label=r'Fit ($\chi^2$ min)', ls='--', color='black')
-ax[0].errorbar(fr, phi, yerr=ephi, fmt='o', ms=2, color='darkblue',
+           label=r'Fit ($\chi^2$ min)', ls='--', color='blue')
+ax[0].errorbar(fr, phi, yerr=ephi, fmt='o', ms=2, color='blue',
                label=r'$\Delta\phi_R$')
-ax[0].axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8,
-              label=r'$\pm\pi/4$')
-ax[0].axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8,
-              label='_nolegend_')
+ax[0].axhline(np.pi / 4, color='gray', ls='dotted', lw=0.8)
+ax[0].axhline(-np.pi / 4, color='gray', ls='dotted', lw=0.8)
 ax[0].axhline(0, color='gray', ls='dotted', lw=0.8)
 ax[0].set_ylabel(r'$\Delta\phi_R$ [rad]')
-ax[0].yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=fit_y_tick_nbins))
 ax[0].legend(loc='best', prop={'size': LEGEND_SMALL})
 
 residui_chi2 = phi - model_min
-ax[1].errorbar(fr, residui_chi2, yerr=ephi, fmt='o', ms=2, color='darkblue')
+ax[1].errorbar(fr, residui_chi2, yerr=ephi, fmt='o', ms=2, color='blue')
 ax[1].axhline(0, color='black', lw=0.8)
-ax[1].set_ylabel(r'Residui')
+ax[1].set_ylabel(r'Residui [rad]')
 ax[1].set_xlabel(r'Frequenza [kHz]')
-ax[1].yaxis.set_major_locator(mpl.ticker.MaxNLocator(nbins=res_y_tick_nbins))
 
 plt.savefig(file.replace('.txt', '') + '_3.png',
             bbox_inches='tight', transparent=True,
@@ -357,6 +486,7 @@ line_c = 'gray'
 level = np.linspace(np.min(mappa), np.max(mappa), 100)
 
 # Solo per la visualizzazione: omega0 viene mostrato in krad/s.
+# Tutti i calcoli del fit e del chi quadro restano in rad/s.
 B_chi_plot = B_chi / 1.0e3
 B0_plot = B0 / 1.0e3
 B1_plot = B1 / 1.0e3
@@ -366,7 +496,7 @@ errBB_plot = errBB / 1.0e3
 fig, ax = plt.subplots(2, 2, figsize=(5.5, 5), constrained_layout=True,
                        height_ratios=[3, 1], width_ratios=[1, 3],
                        sharex='col', sharey='row')
-fig.suptitle(r'$\chi^2\left(\omega_0,\, Q\right)$')
+fig.suptitle(r'$\chi^2\left(\omega_0,\, Q\right) - \Delta \phi_R(\omega)$')
 
 # --- Pannello principale: contour 2D (omega0 su x, Q su y) ---
 im = ax[0, 1].contourf(B_chi_plot, C_chi, mappa.T, levels=level, cmap=cmap)
@@ -393,6 +523,8 @@ ax[0, 1].plot([B0_plot, B1_plot], [C_chi[C_dx], C_chi[C_dx]], color=line_c, ls='
 ax[0, 1].plot([B_chi_plot[B_sx], B_chi_plot[B_sx]], [C0, C1], color=line_c, ls='dashed')
 ax[0, 1].plot([B_chi_plot[B_dx], B_chi_plot[B_dx]], [C0, C1], color=line_c, ls='dashed')
 
+ax[0, 1].xaxis.set_label_position('top')
+ax[0, 1].xaxis.tick_top()
 
 # --- Pannello sinistro: profilo di Q (asse y) ---
 ax[0, 0].plot(prof_C, C_chi, ls='-')
@@ -418,7 +550,7 @@ ax[1, 1].plot([B_chi_plot[B_dx], B_chi_plot[B_dx]], [chi2_min - 1, chi2_min + 4]
               color=line_c, ls='dashed')
 ax[1, 1].set_yticks([int(chi2_min), int(chi2_min + 1), int(chi2_min + 4)])
 ax[1, 1].set_ylim(chi2_min - 1, chi2_min + 4)
-ax[1, 1].set_xlabel(r'$\omega_0$ [krad/s]', loc='center')
+ax[1, 1].set_xlabel(r'$\omega_0$ [krad/s]')
 ax[1, 1].text(B_chi_plot[iB_min], chi2_min + 1.5,
               fr'{B_chi_plot[iB_min]:.3e}', color='k', alpha=0.6, fontsize=TEXT_SIZE)
 ax[1, 1].text(B_chi_plot[B_sx], chi2_min + 2.5,
